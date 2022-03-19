@@ -7,7 +7,6 @@
     <groupId>org.treblereel.gwt.quake2</groupId>
     <artifactId>parent</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <relativePath>..</relativePath>
   </parent>
 
   <artifactId>client</artifactId>
@@ -43,6 +42,11 @@
       <groupId>org.treblereel.gwt.elemental2</groupId>
       <artifactId>pointerlock</artifactId>
       <version>0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.treblereel.gwt.nio</groupId>
+      <artifactId>gwt-nio</artifactId>
+      <version>1.1</version>
     </dependency>
     <dependency>
       <groupId>org.treblereel.gwt.quake2</groupId>
@@ -81,54 +85,5 @@
       </plugin>
     </plugins>
   </build>
-  <repositories>
-    <repository>
-      <id>vertispan-gwt</id>
-      <name>Vertispan Snapshots</name>
-      <url>https://repo.vertispan.com/gwt-snapshot/</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <!--<updatePolicy>always</updatePolicy>-->
-        <checksumPolicy>fail</checksumPolicy>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>vertispan-j2cl</id>
-      <name>Vertispan hosted artifacts-releases</name>
-      <url>https://repo.vertispan.com/j2cl</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>google-snapshots</id>
-      <name>google-snapshots</name>
-      <url>https://oss.sonatype.org/content/repositories/google-snapshots/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>sonatype</id>
-      <name>sonatype</name>
-      <url>https://oss.sonatype.org/content/repositories/releases/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </repository>
-  </repositories>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>vertispan-releases</id>
-      <name>Vertispan hosted artifacts-releases</name>
-      <url>https://repo.vertispan.com/j2cl/</url>
-    </pluginRepository>
-  </pluginRepositories>
 </project>
