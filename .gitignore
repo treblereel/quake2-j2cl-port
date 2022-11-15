@@ -8,3 +8,4 @@ raw/
 war/
 server/src/main/webapp/baseq2
 server/src/main/resources/META-INF/resources
+target/
