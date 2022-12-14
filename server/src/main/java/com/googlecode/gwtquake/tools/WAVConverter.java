@@ -27,10 +27,19 @@ public class WAVConverter extends Converter {
   static final String[] ENCODER_DIRS = {
     "/usr/local/bin",
     "/opt/local/bin",
+          //homedir/bin
+    System.getProperty("user.home") + File.separator + "bin",
+    //homedir/Applications/ffmpegX.app/Contents/Resources/ffmpegX
+    System.getProperty("user.home") + File.separator + "Applications" + File.separator + "ffmpegX.app" + File.separator + "Contents" + File.separator + "Resources" + File.separator + "ffmpegX",
+
   };
 
   String lameLocation;
   String oggLocation;
+
+  //ffmpeg
+    String ffmpegLocation;
+
 
   public WAVConverter() {
     super("wav", "wav");
@@ -73,7 +82,20 @@ public class WAVConverter extends Converter {
         }
       }
     }
-    return lameLocation != null && oggLocation != null;
+
+    //ffmpeg
+    if (ffmpegLocation == null) {
+      f = new File(path, "ffmpeg");
+        if (f.exists()) {
+            ffmpegLocation = f.getAbsolutePath();
+        } else {
+            f = new File(path, "ffmpeg.exe");
+            if (f.exists()) {
+            ffmpegLocation = f.getAbsolutePath();
+            }
+        }
+    }
+    return lameLocation != null && oggLocation != null && ffmpegLocation != null;
   }
 
   @Override
@@ -89,6 +111,11 @@ public class WAVConverter extends Converter {
       System.out.println("oggenc not found");
     } else {
       exec(oggLocation + " - -o " + outPath + ".ogg", raw);
+    }
+    if (ffmpegLocation == null) {
+      System.out.println("ffmpeg not found");
+    } else {
+      exec(ffmpegLocation + " -i - -f wav " + outPath + ".wav", raw);
     }
   }
 
@@ -139,6 +166,5 @@ public class WAVConverter extends Converter {
     public void shutdown() {
       shutdown = true;
     }
-
   }
 }
