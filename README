@@ -3,8 +3,7 @@ Google's J2CL/HTML5 port of Bytonic Software's Java port of Id Software's Quake 
 Prerequisites:
 
 * maven 3.6+
-* lame installed
-* vorbis-tools installed
+* ffmpeg on path
 * tested on linux
 
 1) run `com.googlecode.gwtquake.tools.Installer` from the server module
