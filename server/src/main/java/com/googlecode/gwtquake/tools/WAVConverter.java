@@ -21,150 +21,41 @@ package com.googlecode.gwtquake.tools;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 
 public class WAVConverter extends Converter {
 
-  static final String[] ENCODER_DIRS = {
-    "/usr/local/bin",
-    "/opt/local/bin",
-          //homedir/bin
-    System.getProperty("user.home") + File.separator + "bin",
-    //homedir/Applications/ffmpegX.app/Contents/Resources/ffmpegX
-    System.getProperty("user.home") + File.separator + "Applications" + File.separator + "ffmpegX.app" + File.separator + "Contents" + File.separator + "Resources" + File.separator + "ffmpegX",
 
-  };
-
-  String lameLocation;
-  String oggLocation;
-
-  //ffmpeg
-    String ffmpegLocation;
-
-
-  public WAVConverter() {
-    super("wav", "wav");
-
-    for (String s : ENCODER_DIRS) {
-      if (findEncoder(s)) {
-        return;
-      }
-    }
-
-    String path = System.getenv("PATH");
-    for (String s : path.split(File.pathSeparator)) {
-      if (findEncoder(s)) {
-        return;
-      }
-    }
-  }
-
-  private boolean findEncoder(String path) {
-    File f;
-    if (lameLocation == null) {
-      f = new File(path, "lame");
-      if (f.exists()) {
-        lameLocation = f.getAbsolutePath();
-      } else {
-        f = new File(path, "lame.exe");
-        if (f.exists()) {
-          lameLocation = f.getAbsolutePath();
-        }
-      }
-    } 
-    if (oggLocation == null) {
-      f = new File(path, "oggenc");
-      if (f.exists()) {
-        oggLocation = f.getAbsolutePath();
-      } else {
-        f = new File(path, "oggenc.exe");
-        if (f.exists()) {
-          oggLocation = f.getAbsolutePath();
-        }
-      }
-    }
-
-    //ffmpeg
-    if (ffmpegLocation == null) {
-      f = new File(path, "ffmpeg");
-        if (f.exists()) {
-            ffmpegLocation = f.getAbsolutePath();
-        } else {
-            f = new File(path, "ffmpeg.exe");
-            if (f.exists()) {
-            ffmpegLocation = f.getAbsolutePath();
-            }
-        }
-    }
-    return lameLocation != null && oggLocation != null && ffmpegLocation != null;
-  }
-
-  @Override
-  public void convert(byte[] raw, File outFile, int[] size) throws IOException {
-    String outPath = lowerFile(outFile);
-
-    if (lameLocation == null) {
-      System.out.println("lame not found");
-    } else {
-      exec(lameLocation + " - " + outPath + ".mp3", raw);
-    }
-    if (oggLocation == null) {
-      System.out.println("oggenc not found");
-    } else {
-      exec(oggLocation + " - -o " + outPath + ".ogg", raw);
-    }
-    if (ffmpegLocation == null) {
-      System.out.println("ffmpeg not found");
-    } else {
-      exec(ffmpegLocation + " -i - -f wav " + outPath + ".wav", raw);
-    }
-  }
-
-  private static void exec(String cmd, byte [] raw) throws IOException {
-    Process p = Runtime.getRuntime().exec(cmd);
-    AutoOutputReaderRunnable op = new AutoOutputReaderRunnable(p.getInputStream());
-    AutoOutputReaderRunnable opb = new AutoOutputReaderRunnable(p.getErrorStream());
-    new Thread(op).start();
-    new Thread(opb).start();
-    p.getOutputStream().write(raw);
-    p.getOutputStream().close();
-
-    try {
-      p.waitFor();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    op.shutdown();
-    opb.shutdown();
-  }
-
-  private String lowerFile(File outFile) throws IOException {
-    String lowerFileName = outFile.getCanonicalFile().getName().toLowerCase();
-    String pathName = outFile.getCanonicalFile().getParent();
-    return pathName + File.separator + lowerFileName;
-  }
-
-
-  public static class AutoOutputReaderRunnable implements Runnable {   
-    private InputStream is;
-    private boolean shutdown = false;
-
-    public AutoOutputReaderRunnable(InputStream is) {
-      this.is = is;
+    public WAVConverter() {
+        super("wav", "wav");
     }
 
     @Override
-    public void run() {
-      while(!shutdown) {
+    public void convert(byte[] raw, File outFile, int[] size) throws IOException {
+        String outPath = lowerFile(outFile);
         try {
-          is.read();
-        } catch(Exception e) {
-          e.printStackTrace();
+            //write raw bytes to tmpfile ending in .wav
+            File tmpFile = File.createTempFile("q2audio", ".wav");
+            tmpFile.deleteOnExit();
+            String tmpPath = lowerFile(tmpFile);
+            Files.write(tmpFile.toPath(), raw);
+            ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-i", tmpPath, "-filter_complex", "[0:a]asplit[a1][a2]", "-map", "[a1]", "-qscale:a", "2", outPath + ".mp3", "-map", "[a2]", "-qscale:a", "2", outPath + ".ogg");
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            InputStream is = p.getInputStream();
+            byte[] buffer = new byte[1024];
+            int read = 0;
+            while ((read = is.read(buffer)) != -1) System.out.println(new String(buffer, 0, read));
+            is.close();
+            p.waitFor();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-      }
     }
 
-    public void shutdown() {
-      shutdown = true;
+    private String lowerFile(File outFile) throws IOException {
+        String lowerFileName = outFile.getCanonicalFile().getName().toLowerCase();
+        String pathName = outFile.getCanonicalFile().getParent();
+        return pathName + File.separator + lowerFileName;
     }
-  }
 }
