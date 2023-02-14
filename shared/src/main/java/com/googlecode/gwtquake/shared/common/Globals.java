@@ -29,6 +29,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.util.Random;
 
+import com.googlecode.gwtquake.shared.Game_Export_T;
 import com.googlecode.gwtquake.shared.client.*;
 import com.googlecode.gwtquake.shared.game.*;
 import com.googlecode.gwtquake.shared.render.DummyRenderer;
@@ -36,10 +37,10 @@ import com.googlecode.gwtquake.shared.render.Model;
 
 /**
  * Globals ist the collection of global variables and constants.
- * It is more elegant to use these vars by inheritance to separate 
+ * It is more elegant to use these vars by inheritance to separate
  * it with eclipse refactoring later.
- * 
- * As consequence you dont have to touch that much code this time. 
+ *
+ * As consequence you dont have to touch that much code this time.
  */
 public class Globals {
 
@@ -97,9 +98,9 @@ public class Globals {
 
 	/*
 	=============================================================================
-	
+
 							COMMAND BUFFER
-	
+
 	=============================================================================
 	*/
 
@@ -148,14 +149,16 @@ public class Globals {
 	public static ClientState cl = new ClientState();
 
 	public static ClientEntity cl_entities[] = new ClientEntity[Constants.MAX_EDICTS];
-	static {
+	public static Game_Export_T game;
+
+    static {
 		for (int i = 0; i < cl_entities.length; i++) {
 			cl_entities[i] = new ClientEntity();
 		}
 	}
 
 	public static EntityState cl_parse_entities[] = new EntityState[Constants.MAX_PARSE_ENTITIES];
-	
+
 	static {
 		for (int i = 0; i < cl_parse_entities.length; i++)
 		{
@@ -367,14 +370,14 @@ public class Globals {
 	public static int gun_frame;
 	public static Model gun_model;
 	public static NetworkAddress net_from = new NetworkAddress();
-	
+
 	// logfile
 	public static RandomAccessFile logfile = null;
-	
+
 	public static float vec3_origin[] = { 0.0f, 0.0f, 0.0f };
 
 	public static ConsoleVariable m_filter;
 	public static int vidref_val = Constants.VIDREF_GL;
-	
+
 	public static Random rnd = new Random();
 }

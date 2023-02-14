@@ -27,12 +27,22 @@ package com.googlecode.gwtquake.shared.common;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import com.googlecode.gwtquake.shared.Game_Export_T;
+import com.googlecode.gwtquake.shared.Game_Import_T;
+import com.googlecode.gwtquake.shared.GetGameAPI;
 import com.googlecode.gwtquake.shared.client.*;
 import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.server.ServerMain;
 import com.googlecode.gwtquake.shared.sys.*;
 import com.googlecode.gwtquake.shared.util.Vargs;
 import elemental2.dom.DomGlobal;
+
+import static com.googlecode.gwtquake.shared.game.Commands.ClientCommand;
+import static com.googlecode.gwtquake.shared.game.GameBase.*;
+import static com.googlecode.gwtquake.shared.game.GameSave.*;
+import static com.googlecode.gwtquake.shared.game.GameSpawn.SpawnEntities;
+import static com.googlecode.gwtquake.shared.game.PlayerClient.*;
+import static com.googlecode.gwtquake.shared.server.ServerInit.SV_InitGame;
 
 /**
  * Qcommon contains some  basic routines for the game engine
@@ -54,11 +64,34 @@ public final class QuakeCommon {
 	public static void Init(String[] args) {
 		try {
 
+			Globals.game = ((GetGameAPI) import_t -> {
+				Game_Export_T result = new Game_Export_T();
+				result.Init = () -> SV_InitGame();
+				result.Shutdown = () -> ShutdownGame();
+				result.SpawnEntities = (mapname, entities,
+										spawnpoint) -> SpawnEntities(mapname, entities, spawnpoint);
+				result.WriteGame = (filename, autosave) -> WriteGame(filename, autosave);
+				result.ReadGame = (filename) -> ReadGame(filename);
+
+				result.WriteLevel = (filename) -> WriteLevel(filename);
+				result.ReadLevel = (filename) -> ReadLevel(filename);
+
+				result.ClientConnect = (ent, userinfo) -> ClientConnect(ent, userinfo);
+				result.ClientBegin = (ent) -> ClientBegin(ent);
+				result.ClientUserinfoChanged = (ent, userinfo) -> ClientUserinfoChanged(ent, userinfo);
+				result.ClientDisconnect = (ent) -> ClientDisconnect(ent);
+				result.ClientCommand = (ent) -> ClientCommand(ent);
+				result.ClientThink = (ent, ucmd) -> ClientThink(ent, ucmd);
+				result.RunEntity = (ent) -> G_RunEntity(ent);
+				result.RunFrame = () -> G_RunFrame();
+				return result;
+			}).GetGameAPI(new Game_Import_T());
+
 			// prepare enough of the subsystems to handle
 			// cvar and command buffer management
 			Com.InitArgv(args);
 
-			
+
 			Commands.Init();
 			ConsoleVariables.Init();
 
@@ -73,22 +106,22 @@ public final class QuakeCommon {
 
 			if (q2Dialog != null)
 				q2Dialog.setStatus("initializing filesystem...");
-			
+
       QuakeFileSystem.InitFilesystem();
 
 			if (q2Dialog != null)
 				q2Dialog.setStatus("loading config...");
-			
+
       reconfigure(false);
 
 			QuakeFileSystem.setCDDir(); // use cddir from config.cfg
 			QuakeFileSystem.markBaseSearchPaths(); // mark the default search paths
-			
+
 			if (q2Dialog != null)
 				q2Dialog.testQ2Data(); // test for valid baseq2
-			
+
 			reconfigure(true); // reload default.cfg and config.cfg
-			
+
 			//
 			// init commands and vars
 			//
@@ -114,17 +147,17 @@ public final class QuakeCommon {
 
 			if (q2Dialog != null)
 				q2Dialog.setStatus("initializing network subsystem...");
-			
+
 			NET.Init();	//ok
 			NetworkChannel.Netchan_Init();	//ok
 
-			if (q2Dialog != null)			
+			if (q2Dialog != null)
 				q2Dialog.setStatus("initializing server subsystem...");
 			ServerMain.SV_Init();	//ok
-			
+
 			if (q2Dialog != null)
 				q2Dialog.setStatus("initializing client subsystem...");
-			
+
 			Client.init();
 
 			// add + commands from command line
@@ -137,7 +170,7 @@ public final class QuakeCommon {
 			          CommandBuffer.AddText ("menu_main\n"); // ("d1\n");
 			      else
 			          CommandBuffer.AddText ("dedicated_start\n");
-			          
+
 				CommandBuffer.Execute();
 			} else {
 				// the user asked for something explicit
@@ -149,7 +182,7 @@ public final class QuakeCommon {
 
 			// save config when configuration is completed
 			Client.writeConfiguration();
-			
+
 			if (q2Dialog != null)
 				q2Dialog.dispose();
 
@@ -216,7 +249,7 @@ public final class QuakeCommon {
 					new Vargs(2).add(Globals.c_traces)
 								.add(Globals.c_pointcontents));
 
-				
+
 				Globals.c_traces= 0;
 				Globals.c_brush_traces= 0;
 				Globals.c_pointcontents= 0;
@@ -261,7 +294,7 @@ public final class QuakeCommon {
 
 	static void reconfigure(boolean clear) {
 		String dir = ConsoleVariables.Get("cddir", "", Constants.CVAR_ARCHIVE).string;
-		
+
 		CommandBuffer.AddText(DefaultCfg.DEFAULT_CFG);
 
 		CommandBuffer.AddText("bind MWHEELUP weapnext\n");

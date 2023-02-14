@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 1997-2001 Id Software, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
- *  
+ *
  */
 /* Modifications
    Copyright 2003-2004 Bytonic Software
@@ -61,7 +61,7 @@ public class ServerInit {
 
         sv.configstrings[start + i] = name;
 
-        if (sv.state != Constants.ss_loading) { 
+        if (sv.state != Constants.ss_loading) {
             // send the update to everyone
             sv.multicast.clear();
             Buffers.writeByte(sv.multicast, Constants.svc_configstring);
@@ -87,7 +87,7 @@ public class ServerInit {
 
     /**
      * SV_CreateBaseline
-     * 
+     *
      * Entity baselines are used to compress the update messages to the clients --
      * only the fields that differ from the baseline will be transmitted.
      */
@@ -103,7 +103,7 @@ public class ServerInit {
             if (0 == svent.s.modelindex && 0 == svent.s.sound
                     && 0 == svent.s.effects)
                 continue;
-            
+
             svent.s.number = entnum;
 
             // take current state as baseline
@@ -112,7 +112,7 @@ public class ServerInit {
         }
     }
 
-    /** 
+    /**
      * SV_CheckForSavegame.
      */
     public static void SV_CheckForSavegame() {
@@ -149,7 +149,7 @@ public class ServerInit {
         // get configstrings and areaportals
         ServerCommands.SV_ReadLevelFile();
 
-        if (!sv.loadgame) { 
+        if (!sv.loadgame) {
             // coming back to a level after being in a different
             // level, so run it for ten seconds
 
@@ -161,7 +161,8 @@ public class ServerInit {
             previousState = sv.state; // PGM
             sv.state = Constants.ss_loading; // PGM
             for (i = 0; i < 100; i++)
-                GameBase.G_RunFrame();
+                //GameBase.G_RunFrame();
+                Globals.game.RunFrame.run();
 
             sv.state = previousState; // PGM
         }
@@ -169,7 +170,7 @@ public class ServerInit {
 
     /**
      * SV_SpawnServer.
-     * 
+     *
      * Change the server to a new map, taking all connected clients along with
      * it.
      */
@@ -177,7 +178,7 @@ public class ServerInit {
             final int serverstate, boolean attractloop, boolean loadgame, final Command continueCommand) {
         int i;
         int checksum = 0;
-        
+
         if (attractloop)
           ConsoleVariables.Set("paused", "0");
 
@@ -187,7 +188,7 @@ public class ServerInit {
         sv.demofile = null;
 
         // any partially connected client will be restarted
-        svs.spawncount++;        
+        svs.spawncount++;
 
         sv.state = Constants.ss_dead;
 
@@ -228,9 +229,9 @@ public class ServerInit {
 
         sv.name = server;
         sv.configstrings[Constants.CS_NAME] = server;
-        
+
         final int iw[] = {checksum };
-        
+
         CM.ModelCallback onLoad = new CM.ModelCallback() {
 
 			public void onSuccess(Model response) {
@@ -258,11 +259,14 @@ public class ServerInit {
 				Globals.server_state = sv.state;
 
 				// load and spawn all other entities
-				GameSpawn.SpawnEntities(sv.name, CM.CM_EntityString(), spawnpoint);
+				//GameSpawn.SpawnEntities(sv.name, CM.CM_EntityString(), spawnpoint);
+                Globals.game.SpawnEntities.apply(sv.name, CM.CM_EntityString(), spawnpoint);
 
 				// run two frames to allow everything to settle
-				GameBase.G_RunFrame();
-				GameBase.G_RunFrame();
+				//GameBase.G_RunFrame();
+				//GameBase.G_RunFrame();
+                Globals.game.RunFrame.run();
+                Globals.game.RunFrame.run();
 
 				// all precaches are complete
 				sv.state = serverstate;
@@ -277,13 +281,13 @@ public class ServerInit {
 				// set serverinfo variable
 				ConsoleVariables.FullSet("mapname", sv.name, Constants.CVAR_SERVERINFO
 						| Constants.CVAR_NOSET);
-        		
+
         		continueCommand.execute();
         	}
 
         };
-        
-        
+
+
         if (serverstate != Constants.ss_game) {
         	CM.CM_LoadMap("", false, iw, onLoad); // no real map
         } else {
@@ -291,13 +295,13 @@ public class ServerInit {
             CM.CM_LoadMap(sv.configstrings[Constants.CS_MODELS + 1], false, iw, onLoad);
         }
 
-        
+
     }
 
 
     /**
      * SV_InitGame.
-     * 
+     *
      * A brand new game has been started.
      */
     public static void SV_InitGame() {
@@ -354,7 +358,7 @@ public class ServerInit {
                     | Constants.CVAR_LATCH);
         }
 
-        svs.spawncount = Lib.rand();        
+        svs.spawncount = Lib.rand();
         svs.clients = new ClientData[(int) ServerMain.maxclients.value];
         for (int n = 0; n < svs.clients.length; n++) {
             svs.clients[n] = new ClientData();
@@ -386,19 +390,19 @@ public class ServerInit {
     }
 
     private static String firstmap = "";
-    
+
     /**
      * SV_Map
-     * 
+     *
      * the full syntax is:
-     * 
+     *
      * map [*] <map>$ <startspot>+ <nextserver>
-     * 
+     *
      * command from the console or progs. Map can also be a.cin, .pcx, or .dm2 file.
-     * 
+     *
      * Nextserver is used to allow a cinematic to play, then proceed to
      * another level:
-     * 
+     *
      * map tram.cin+jail_e3
      */
     public static void SV_Map(boolean attractloop, String levelstring, boolean loadgame,
@@ -409,8 +413,10 @@ public class ServerInit {
         sv.loadgame = loadgame;
         sv.attractloop = attractloop;
 
-        if (sv.state == Constants.ss_dead && !sv.loadgame)
-            SV_InitGame(); // the game is just starting
+        if (sv.state == Constants.ss_dead && !sv.loadgame) {
+            //SV_InitGame(); // the game is just starting
+            Globals.game.Init.run();
+        }
 
         level = levelstring; // bis hier her ok.
 
@@ -423,10 +429,10 @@ public class ServerInit {
         } else {
             ConsoleVariables.Set("nextserver", "");
         }
-        
+
         // rst: base1 works for full, damo1 works for demo, so we need to store first map.
         if (firstmap.length() == 0)
-        {        
+        {
         	if (!levelstring.endsWith(".cin") && !levelstring.endsWith(".pcx") && !levelstring.endsWith(".dm2"))
         	{
         		int pos = levelstring.indexOf('+');
@@ -452,14 +458,14 @@ public class ServerInit {
             level = level.substring(1);
 
         l = level.length();
-        
+
         Command continueCmd2 = new Command() {
 			public void execute() {
 		        ServerSend.SV_BroadcastCommand("reconnect\n");
 		        continueCmd.execute();
 			}
         };
-        
+
         if (l > 4 && level.endsWith(".cin")) {
             Screen.BeginLoadingPlaque(); // for local system
             ServerSend.SV_BroadcastCommand("changing\n");

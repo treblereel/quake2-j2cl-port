@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -35,6 +35,7 @@ import com.googlecode.gwtquake.shared.common.Com;
 import com.googlecode.gwtquake.shared.common.CommandBuffer;
 import com.googlecode.gwtquake.shared.common.ConsoleVariables;
 import com.googlecode.gwtquake.shared.common.Constants;
+import com.googlecode.gwtquake.shared.common.Globals;
 import com.googlecode.gwtquake.shared.server.SV;
 import com.googlecode.gwtquake.shared.server.ServerGame;
 import com.googlecode.gwtquake.shared.server.ServerSend;
@@ -432,7 +433,8 @@ public class GameBase {
                 continue;
             }
 
-            G_RunEntity(ent);
+            //G_RunEntity(ent);
+            Globals.game.RunEntity.accept(ent);
         }
 
         // see if it is time to end a deathmatch

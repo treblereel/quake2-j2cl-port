@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 1997-2001 Id Software, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
- *  
+ *
  */
 /* Modifications
    Copyright 2003-2004 Bytonic Software
@@ -35,11 +35,11 @@ import com.googlecode.gwtquake.shared.util.Lib;
 
 public class ServerMain {
 
-	/** Addess of group servers.*/ 
+	/** Addess of group servers.*/
     public static NetworkAddress master_adr[] = new NetworkAddress[Constants.MAX_MASTERS];
-                                                                            
-                                                                            
-                                                                            
+
+
+
     static {
         for (int i = 0; i < Constants.MAX_MASTERS; i++) {
             master_adr[i] = new NetworkAddress();
@@ -105,7 +105,8 @@ public class ServerMain {
         if (drop.state == Constants.cs_spawned) {
             // call the prog function for removing a client
             // this will remove the body, among other things
-            PlayerClient.ClientDisconnect(drop.edict);
+            //PlayerClient.ClientDisconnect(drop.edict);
+            Globals.game.ClientDisconnect.accept(drop.edict);
         }
 
         if (drop.download != null) {
@@ -117,13 +118,13 @@ public class ServerMain {
         drop.name = "";
     }
 
-    
+
     /* ==============================================================================
-     * 
+     *
      * CONNECTIONLESS COMMANDS
-     * 
+     *
      * ==============================================================================*/
-     
+
     /**
      * Builds the string that is sent as heartbeats and status replies.
      */
@@ -210,7 +211,7 @@ public class ServerMain {
         NetworkChannel.OutOfBandPrint(Constants.NS_SERVER, Globals.net_from, "ack");
     }
 
-    /** 
+    /**
      * Returns a challenge number that can be used in a subsequent
      * client_connect command. We do this to prevent denial of service attacks
      * that flood the server with invalid connection IPs. With a challenge, they
@@ -358,20 +359,20 @@ public class ServerMain {
         // this is the only place a client_t is ever initialized
 
         ServerMain.sv_client = ServerInit.svs.clients[i];
-        
+
         int edictnum = i + 1;
-        
+
         Entity ent = GameBase.g_edicts[edictnum];
         ServerInit.svs.clients[i].edict = ent;
-        
+
         // save challenge for checksumming
         ServerInit.svs.clients[i].challenge = challenge;
-        
-        
+
+
 
         // get the game a chance to reject this connection or modify the
         // userinfo
-        if (!(PlayerClient.ClientConnect(ent, userinfo))) {
+        if (!(Globals.game.ClientConnect.apply(ent, userinfo))) {
             if (Info.Info_ValueForKey(userinfo, "rejmsg") != null)
                 NetworkChannel.OutOfBandPrint(Constants.NS_SERVER, adr, "print\n"
                         + Info.Info_ValueForKey(userinfo, "rejmsg")
@@ -396,15 +397,15 @@ public class ServerMain {
 
         ServerInit.svs.clients[i].datagram.clear();
         ServerInit.svs.clients[i].datagram.order(ByteOrder.LITTLE_ENDIAN);
-        
+
         ServerInit.svs.clients[i].datagram.allowoverflow = true;
         ServerInit.svs.clients[i].lastmessage = ServerInit.svs.realtime; // don't timeout
         ServerInit.svs.clients[i].lastconnect = ServerInit.svs.realtime;
         Com.DPrintf("new client added.\n");
     }
 
-    
-    /** 
+
+    /**
      * Checks if the rcon password is corect.
      */
     public static int Rcon_Validate() {
@@ -476,8 +477,8 @@ public class ServerMain {
         Commands.TokenizeString(s.toCharArray(), false);
 
         c = Commands.Argv(0);
-        
-        //for debugging purposes 
+
+        //for debugging purposes
         //Com.Printf("Packet " + NET.AdrToString(Netchan.net_from) + " : " + c + "\n");
         //Com.Printf(Lib.hexDump(net_message.data, 64, false) + "\n");
 
@@ -615,7 +616,7 @@ public class ServerMain {
      * If a packet has not been received from a client for timeout.value
      * seconds, drop the conneciton. Server frames are used instead of realtime
      * to avoid dropping the local client while debugging.
-     * 
+     *
      * When a client is normally dropped, the client_t goes into a zombie state
      * for a few seconds to make sure any final reliable message gets resent if
      * necessary.
@@ -651,7 +652,7 @@ public class ServerMain {
 
     /**
      * SV_PrepWorldFrame
-     * 
+     *
      * This has to be done before the world logic, because player processing
      * happens outside RunWorldFrame.
      */
@@ -683,7 +684,8 @@ public class ServerMain {
 
         // don't run if paused
         if (0 == ServerMain.sv_paused.value || ServerMain.maxclients.value > 1) {
-            GameBase.G_RunFrame();
+            //GameBase.G_RunFrame();
+            Globals.game.RunFrame.run();
 
             // never get more than one tic behind
             if (ServerInit.sv.time < ServerInit.svs.realtime) {
@@ -791,7 +793,7 @@ public class ServerMain {
                         ServerMain.master_adr[i], "heartbeat\n" + string);
             }
     }
-    
+
 
     /**
      * Master_Shutdown, Informs all masters that this server is going down.
@@ -817,7 +819,7 @@ public class ServerMain {
                         ServerMain.master_adr[i], "shutdown");
             }
     }
-    
+
 
     /**
      * Pull specific info from a newly changed userinfo string into a more C
@@ -828,7 +830,8 @@ public class ServerMain {
         int i;
 
         // call prog code to allow overrides
-        PlayerClient.ClientUserinfoChanged(cl.edict, cl.userinfo);
+        //PlayerClient.ClientUserinfoChanged(cl.edict, cl.userinfo);
+        Globals.game.ClientUserinfoChanged.apply(cl.edict, cl.userinfo);
 
         // name for C code
         cl.name = Info.Info_ValueForKey(cl.userinfo, "name");
@@ -950,7 +953,7 @@ public class ServerMain {
      */
     public static void SV_Shutdown(String finalmsg, boolean reconnect) {
      	ResourceLoader.reset();
-    	
+
         if (ServerInit.svs.clients != null)
             SV_FinalMessage(finalmsg, reconnect);
 

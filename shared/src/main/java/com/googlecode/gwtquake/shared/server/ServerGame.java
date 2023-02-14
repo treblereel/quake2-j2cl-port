@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 1997-2001 Id Software, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
- *  
+ *
  */
 /* Modifications
    Copyright 2003-2004 Bytonic Software
@@ -32,7 +32,7 @@ public class ServerGame {
 
     /**
      * PF_Unicast
-     * 
+     *
      * Sends the contents of the mutlicast buffer to a single client.
      */
     public static void PF_Unicast(Entity ent, boolean reliable) {
@@ -60,7 +60,7 @@ public class ServerGame {
 
     /**
      * PF_dprintf
-     * 
+     *
      * Debug print to server console.
      */
     public static void PF_dprintf(String fmt) {
@@ -74,10 +74,10 @@ public class ServerGame {
     public static void PF_cprintfhigh(Entity ent, String fmt) {
     	PF_cprintf(ent, Constants.PRINT_HIGH, fmt);
     }
-    
+
     /**
      * PF_cprintf
-     * 
+     *
      * Print to a single client.
      */
     public static void PF_cprintf(Entity ent, int level, String fmt) {
@@ -98,7 +98,7 @@ public class ServerGame {
 
     /**
      * PF_centerprintf
-     * 
+     *
      * centerprint to a single client.
      */
     public static void PF_centerprintf(Entity ent, String fmt) {
@@ -115,8 +115,8 @@ public class ServerGame {
 
     /**
      *  PF_error
-     * 
-     *  Abort the server with a game error. 
+     *
+     *  Abort the server with a game error.
      */
     public static void PF_error(String fmt) {
         Com.Error(Constants.ERR_DROP, "Game Error: " + fmt);
@@ -128,7 +128,7 @@ public class ServerGame {
 
     /**
      * PF_setmodel
-     * 
+     *
      * Also sets mins and maxs for inline bmodels.
      */
     public static void PF_setmodel(Entity ent, String name) {
@@ -214,7 +214,7 @@ public class ServerGame {
 
     /**
      * PF_inPVS
-     * 
+     *
      * Also checks portalareas so that doors block sight.
      */
     public static boolean PF_inPVS(float[] p1, float[] p2) {
@@ -246,7 +246,7 @@ public class ServerGame {
 
     /**
      * PF_inPHS.
-     * 
+     *
      * Also checks portalareas so that doors block sound.
      */
     public static boolean PF_inPHS(float[] p1, float[] p2) {
@@ -288,25 +288,26 @@ public class ServerGame {
 
     /**
      *  SV_ShutdownGameProgs
-     * 
+     *
      * Called when either the entire server is being killed, or it is changing
-     * to a different game directory. 
+     * to a different game directory.
      */
     public static void SV_ShutdownGameProgs() {
-        GameBase.ShutdownGame();
+        //GameBase.ShutdownGame();
+        Globals.game.Shutdown.run();
     }
 
     /**
      * SV_InitGameProgs
-     * 
-     * Init the game subsystem for a new map. 
+     *
+     * Init the game subsystem for a new map.
      */
 
     public static void SV_InitGameProgs() {
 
         // unload anything we have now
         SV_ShutdownGameProgs();
-       
+
         GameBase.pointcontents = new PlayerMove.PointContentsAdapter() {
             public int pointcontents(float[] o) {
                 return World.SV_PointContents(o);
@@ -320,12 +321,12 @@ public class ServerGame {
     public static void WriteDir(Buffer sb, float[] dir) {
         int i, best;
         float d, bestd;
-    
+
         if (dir == null) {
             Buffers.writeByte(sb, 0);
             return;
         }
-    
+
         bestd = 0;
         best = 0;
         for (i = 0; i < Constants.NUMVERTEXNORMALS; i++) {

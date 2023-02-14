@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 1997-2001 Id Software, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
- *  
+ *
  */
 /* Modifications
    Copyright 2003-2004 Bytonic Software
@@ -112,9 +112,9 @@ public class User {
 
     /*
      * ============================================================
-     * 
+     *
      * USER STRINGCMD EXECUTION
-     * 
+     *
      * sv_client and sv_player will be valid.
      * ============================================================
      */
@@ -126,19 +126,19 @@ public class User {
         String name;
 
         name = "demos/" + ServerInit.sv.name;
-        
+
         ResourceLoader.loadResourceAsync(name, new ResourceLoader.Callback() {
-			
+
 			public void onSuccess(ByteBuffer result) {
-				ServerInit.sv.demofile = result;	
+				ServerInit.sv.demofile = result;
 			}
 		});
-        
+
     }
 
     /*
      * ================ SV_New_f
-     * 
+     *
      * Sends the first message from the server to a connected client. This will
      * be sent on the initial connection and upon each server load.
      * ================
@@ -172,7 +172,7 @@ public class User {
                         Constants.svc_serverdata);
         ServerMain.sv_client.netchan.message.putInt(
                 Constants.PROTOCOL_VERSION);
-        
+
         ServerMain.sv_client.netchan.message.putInt(ServerInit.svs.spawncount);
         Buffers.writeByte(ServerMain.sv_client.netchan.message,
                 ServerInit.sv.attractloop ? 1 : 0);
@@ -193,7 +193,7 @@ public class User {
 
         //
         // game server
-        // 
+        //
         if (ServerInit.sv.state == Constants.ss_game) {
             // set up the entity for the client
             ent = GameBase.g_edicts[playernum + 1];
@@ -207,7 +207,7 @@ public class User {
             Buffers.WriteString(ServerMain.sv_client.netchan.message,
                     "cmd configstrings " + ServerInit.svs.spawncount + " 0\n");
         }
-        
+
     }
 
     /*
@@ -335,8 +335,8 @@ public class User {
         ServerMain.sv_client.state = Constants.cs_spawned;
 
         // call the game begin function
-        PlayerClient.ClientBegin(User.sv_player);
-
+        //PlayerClient.ClientBegin(User.sv_player);
+        Globals.game.ClientBegin.accept(User.sv_player);
         CommandBuffer.InsertFromDefer();
     }
 
@@ -419,13 +419,13 @@ public class User {
             QuakeFileSystem.FreeFile(ServerMain.sv_client.download);
 
         ServerMain.sv_client.download = QuakeFileSystem.LoadFile(name);
-        
-        // rst: this handles loading errors, no message yet visible 
+
+        // rst: this handles loading errors, no message yet visible
         if (ServerMain.sv_client.download == null)
-        {        	
+        {
         	return;
         }
-        
+
         ServerMain.sv_client.downloadsize = ServerMain.sv_client.download.length;
         ServerMain.sv_client.downloadcount = offset;
 
@@ -460,7 +460,7 @@ public class User {
 
     /*
      * ================= SV_Disconnect_f
-     * 
+     *
      * The client is going to disconnect, so remove the connection immediately
      * =================
      */
@@ -471,7 +471,7 @@ public class User {
 
     /*
      * ================== SV_ShowServerinfo_f
-     * 
+     *
      * Dumps the serverinfo info string ==================
      */
     public static void SV_ShowServerinfo_f() {
@@ -483,7 +483,7 @@ public class User {
 
         //ZOID, ss_pic can be nextserver'd in coop mode
         if (ServerInit.sv.state == Constants.ss_game
-                || (ServerInit.sv.state == Constants.ss_pic && 
+                || (ServerInit.sv.state == Constants.ss_pic &&
                         0 == ConsoleVariables.VariableValue("coop")))
             return; // can't nextserver while playing a normal game
 
@@ -501,7 +501,7 @@ public class User {
 
     /*
      * ================== SV_Nextserver_f
-     * 
+     *
      * A cinematic has completed or been aborted by a client, so move to the
      * next server, ==================
      */
@@ -521,7 +521,7 @@ public class User {
      * ================== SV_ExecuteUserCommand ==================
      */
     public static void SV_ExecuteUserCommand(String s) {
-        
+
         Com.dprintln("SV_ExecuteUserCommand:" + s );
         User.ucmd_t u = null;
 
@@ -539,17 +539,18 @@ public class User {
             }
         }
 
-        if (i == User.ucmds.length && ServerInit.sv.state == Constants.ss_game)
-            Commands.ClientCommand(User.sv_player);
-
+        if (i == User.ucmds.length && ServerInit.sv.state == Constants.ss_game) {
+            //Commands.ClientCommand(User.sv_player);
+            Globals.game.ClientCommand.accept(User.sv_player);
+        }
         //	SV_EndRedirect ();
     }
 
     /*
      * ===========================================================================
-     * 
+     *
      * USER CMD EXECUTION
-     * 
+     *
      * ===========================================================================
      */
 
@@ -561,12 +562,13 @@ public class User {
             return;
         }
 
-        PlayerClient.ClientThink(cl.edict, cmd);
+        //PlayerClient.ClientThink(cl.edict, cmd);
+        Globals.game.ClientThink.accept(cl.edict, cmd);
     }
 
     /*
      * =================== SV_ExecuteClientMessage
-     * 
+     *
      * The current net_message is parsed for the given client
      * ===================
      */

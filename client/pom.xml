@@ -84,7 +84,7 @@
           </execution>
         </executions>
         <configuration>
-          <compilationLevel>ADVANCED</compilationLevel>
+          <compilationLevel>BUNDLE</compilationLevel>
           <initialScriptFilename>${project.artifactId}.js</initialScriptFilename>
         </configuration>
       </plugin>

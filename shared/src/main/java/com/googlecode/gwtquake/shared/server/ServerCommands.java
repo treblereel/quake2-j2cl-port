@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -61,9 +61,9 @@ public class ServerCommands {
 
 	/*
 	===============================================================================
-	
+
 	OPERATOR CONSOLE ONLY COMMANDS
-	
+
 	These commands can only be entered from stdin or by a remote operator datagram
 	===============================================================================
 	*/
@@ -76,7 +76,7 @@ public class ServerCommands {
 	/*
 	====================
 	SV_SetMaster_f
-	
+
 	Specify a list of master servers
 	====================
 	*/
@@ -120,7 +120,7 @@ public class ServerCommands {
 	/*
 	==================
 	SV_SetPlayer
-	
+
 	Sets sv_client and sv_player to the player with idnum Cmd.Argv(1)
 	==================
 	*/
@@ -169,9 +169,9 @@ public class ServerCommands {
 	}
 	/*
 	===============================================================================
-	
+
 	SAVEGAME FILES
-	
+
 	===============================================================================
 	*/
 
@@ -183,7 +183,7 @@ public class ServerCommands {
         	Compatibility.printStackTrace(e);
 		}
 	}
-	
+
 	/** Delete save files save/(number)/.  */
 	public static void SV_WipeSavegame(String savename) {
 
@@ -335,7 +335,7 @@ public class ServerCommands {
 	/*
 	==============
 	SV_WriteLevelFile
-	
+
 	==============
 	*/
 	public static void SV_WriteLevelFile() {
@@ -362,7 +362,8 @@ public class ServerCommands {
 		}
 
 		name = QuakeFileSystem.Gamedir() + "/save/current/" + ServerInit.sv.name + ".sav";
-		GameSave.WriteLevel(name);
+		//GameSave.WriteLevel(name);
+		Globals.game.WriteLevel.accept(name);
 	}
 	/*
 	==============
@@ -393,7 +394,8 @@ public class ServerCommands {
 		}
 
 		name = QuakeFileSystem.Gamedir() + "/save/current/" + ServerInit.sv.name + ".sav";
-		GameSave.ReadLevel(name);
+		//GameSave.ReadLevel(name);
+		Globals.game.ReadLevel.accept(name);
 	}
 	/*
 	==============
@@ -464,12 +466,13 @@ public class ServerCommands {
 
 		// write game state
 		filename = QuakeFileSystem.Gamedir() + "/save/current/game.ssv";
-		GameSave.WriteGame(filename, autosave);
+		//GameSave.WriteGame(filename, autosave);
+		Globals.game.WriteGame.accept(filename, autosave);
 	}
 	/*
 	==============
 	SV_ReadServerFile
-	
+
 	==============
 	*/
 	public static void SV_ReadServerFile() {
@@ -506,13 +509,15 @@ public class ServerCommands {
 			f.close();
 
 			// start a new game fresh with new cvars
-			ServerInit.SV_InitGame();
+			//ServerInit.SV_InitGame();
+			Globals.game.Init.run();
 
 			ServerInit.svs.mapcmd = mapcmd;
 
 			// read game state
 			filename = QuakeFileSystem.Gamedir() + "/save/current/game.ssv";
-			GameSave.ReadGame(filename);
+			//GameSave.ReadGame(filename);
+			Globals.game.ReadGame.accept(filename);
 		}
 		catch (Exception e) {
 			Com.Printf("Couldn't read file " + filename + "\n");
@@ -524,7 +529,7 @@ public class ServerCommands {
 	/*
 	==================
 	SV_DemoMap_f
-	
+
 	Puts the server in demo mode on a specific map/cinematic
 	==================
 	*/
@@ -534,17 +539,17 @@ public class ServerCommands {
 	/*
 	==================
 	SV_GameMap_f
-	
+
 	Saves the state of the map just being exited and goes to a new map.
-	
+
 	If the initial character of the map string is '*', the next map is
 	in a new unit, so the current savegame directory is cleared of
 	map files.
-	
+
 	Example:
-	
+
 	*inter.cin+jail
-	
+
 	Clears the archived maps, plays the inter.cin cinematic, then
 	goes to map jail.bsp.
 	==================
@@ -607,16 +612,16 @@ public class ServerCommands {
 				}
 			}
 		};
-		
+
 		// start up the next map
 		ServerInit.SV_Map(false, Commands.Argv(1), false, continueCmd);
 
-		
+
 	}
 	/*
 	==================
 	SV_Map_f
-	
+
 	Goes directly to a given map without any savegame archiving.
 	For development work
 	==================
@@ -644,16 +649,16 @@ public class ServerCommands {
 	}
 	/*
 	=====================================================================
-	
+
 	  SAVEGAMES
-	
+
 	=====================================================================
 	*/
 
 	/*
 	==============
 	SV_Loadgame_f
-	
+
 	==============
 	*/
 	public static void SV_Loadgame_f() {
@@ -704,7 +709,7 @@ public class ServerCommands {
 	/*
 	==============
 	SV_Savegame_f
-	
+
 	==============
 	*/
 	public static void SV_Savegame_f() {
@@ -739,7 +744,7 @@ public class ServerCommands {
 		if ( (dir.indexOf("..") > -1) || (dir.indexOf("/") > -1) || (dir.indexOf("\\") > -1)) {
 			Com.Printf("Bad savedir.\n");
 		}
-		
+
 		Com.Printf("Saving game...\n");
 
 		// archive current level, including all client edicts.
@@ -764,7 +769,7 @@ public class ServerCommands {
 	/*
 	==================
 	SV_Kick_f
-	
+
 	Kick a user off of the server
 	==================
 	*/
@@ -884,7 +889,7 @@ public class ServerCommands {
 	/*
 	===========
 	SV_Serverinfo_f
-	
+
 	  Examine or change the serverinfo string
 	===========
 	*/
@@ -895,7 +900,7 @@ public class ServerCommands {
 	/*
 	===========
 	SV_DumpUser_f
-	
+
 	Examine all a users info strings
 	===========
 	*/
@@ -916,7 +921,7 @@ public class ServerCommands {
 	/*
 	==============
 	SV_ServerRecord_f
-	
+
 	Begins server demo recording.  Every entity and every message will be
 	recorded, but no playerinfo will be stored.  Primarily for demo merging.
 	==============
@@ -1007,7 +1012,7 @@ public class ServerCommands {
 	/*
 	==============
 	SV_ServerStop_f
-	
+
 	Ends server demo recording
 	==============
 	*/
@@ -1028,9 +1033,9 @@ public class ServerCommands {
 	/*
 	===============
 	SV_KillServer_f
-	
+
 	Kick everyone off, possibly in preparation for a new game
-	
+
 	===============
 	*/
 	public static void SV_KillServer_f() {
@@ -1042,7 +1047,7 @@ public class ServerCommands {
 	/*
 	===============
 	SV_ServerCommand_f
-	
+
 	Let the game dll handle a command
 	===============
 	*/

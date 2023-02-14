@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 1997-2001 Id Software, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation; either version 2 of the License, or (at your option) any later
  * version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
  * Place - Suite 330, Boston, MA 02111-1307, USA.
- *  
+ *
  */
 /* Modifications
    Copyright 2003-2004 Bytonic Software
@@ -26,6 +26,7 @@ package com.googlecode.gwtquake.shared.game;
 import com.googlecode.gwtquake.shared.common.Com;
 import com.googlecode.gwtquake.shared.common.CommandBuffer;
 import com.googlecode.gwtquake.shared.common.Constants;
+import com.googlecode.gwtquake.shared.common.Globals;
 import com.googlecode.gwtquake.shared.common.PlayerMovements;
 import com.googlecode.gwtquake.shared.game.PlayerMove.TraceAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityDieAdapter;
@@ -43,34 +44,34 @@ import com.googlecode.gwtquake.shared.util.Math3D;
 public class PlayerClient {
 
     public static int player_die_i = 0;
-    
+
     /**
-     * player_die. 
+     * player_die.
      */
     static EntityDieAdapter player_die = new EntityDieAdapter() {
     	public String getID() { return "player_die"; }
         public void die(Entity self, Entity inflictor, Entity attacker,
                 int damage, float[] point) {
             int n;
-    
+
             Math3D.VectorClear(self.avelocity);
-    
+
             self.takedamage = Constants.DAMAGE_YES;
             self.movetype = Constants.MOVETYPE_TOSS;
-    
+
             self.s.modelindex2 = 0; // remove linked weapon model
-    
+
             self.s.angles[0] = 0;
             self.s.angles[2] = 0;
-    
+
             self.s.sound = 0;
             self.client.weapon_sound = 0;
-    
+
             self.maxs[2] = -8;
-    
+
             // self.solid = SOLID_NOT;
             self.svflags |= Constants.SVF_DEADMONSTER;
-    
+
             if (self.deadflag == 0) {
                 self.client.respawn_time = GameBase.level.time + 1.0f;
                 PlayerClient.LookAtKiller(self, inflictor, attacker);
@@ -79,7 +80,7 @@ public class PlayerClient {
                 PlayerClient.TossClientWeapon(self);
                 if (GameBase.deathmatch.value != 0)
                     Commands.Help_f(self); // show scores
-    
+
                 // clear inventory
                 // this is kind of ugly, but it's how we want to handle keys in
                 // coop
@@ -90,14 +91,14 @@ public class PlayerClient {
                     self.client.pers.inventory[n] = 0;
                 }
             }
-    
+
             // remove powerups
             self.client.quad_framenum = 0;
             self.client.invincible_framenum = 0;
             self.client.breather_framenum = 0;
             self.client.enviro_framenum = 0;
             self.flags &= ~Constants.FL_POWER_ARMOR;
-    
+
             if (self.health < -40) { // gib
                 ServerGame.PF_StartSound(self, Constants.CHAN_BODY, ServerInit.SV_SoundIndex("misc/udeath.wav"), (float) 1, (float) Constants.ATTN_NORM,
                 (float) 0);
@@ -105,11 +106,11 @@ public class PlayerClient {
                     GameMisc.ThrowGib(self, "models/objects/gibs/sm_meat/tris.md2",
                             damage, Constants.GIB_ORGANIC);
                 GameMisc.ThrowClientHead(self, damage);
-    
+
                 self.takedamage = Constants.DAMAGE_NO;
             } else { // normal death
                 if (self.deadflag == 0) {
-    
+
                     player_die_i = (player_die_i + 1) % 3;
                     // start a death animation
                     self.client.anim_priority = Constants.ANIM_DEATH;
@@ -131,37 +132,37 @@ public class PlayerClient {
                             self.client.anim_end = MonsterPlayer.FRAME_death308;
                             break;
                         }
-    
+
                     ServerGame.PF_StartSound(self, Constants.CHAN_VOICE, ServerInit.SV_SoundIndex("*death" + ((Lib.rand() % 4) + 1)
                     + ".wav"), (float) 1, (float) Constants.ATTN_NORM,
                     (float) 0);
                 }
             }
-    
+
             self.deadflag = Constants.DEAD_DEAD;
-    
+
             World.SV_LinkEdict(self);
         }
     };
     static EntityThinkAdapter SP_FixCoopSpots = new EntityThinkAdapter() {
     	public String getID() { return "SP_FixCoopSpots"; }
         public boolean think(Entity self) {
-    
+
             Entity spot;
             float[] d = { 0, 0, 0 };
-    
+
             spot = null;
             EntityIterator es = null;
-    
+
             while (true) {
                 es = GameBase.G_Find(es, GameBase.findByClass,
                         "info_player_start");
-    
+
                 if (es == null)
                     return true;
-                
+
                 spot = es.o;
-                
+
                 if (spot.targetname == null)
                     continue;
                 Math3D.VectorSubtract(self.s.origin, spot.s.origin, d);
@@ -182,9 +183,9 @@ public class PlayerClient {
     static EntityThinkAdapter SP_CreateCoopSpots = new EntityThinkAdapter() {
     	public String getID() { return "SP_CreateCoopSpots"; }
         public boolean think(Entity self) {
-    
+
             Entity spot;
-    
+
             if (Lib.Q_stricmp(GameBase.level.mapname, "security") == 0) {
                 spot = GameUtil.G_Spawn();
                 spot.classname = "info_player_coop";
@@ -193,7 +194,7 @@ public class PlayerClient {
                 spot.s.origin[2] = 80;
                 spot.targetname = "jail3";
                 spot.s.angles[1] = 90;
-    
+
                 spot = GameUtil.G_Spawn();
                 spot.classname = "info_player_coop";
                 spot.s.origin[0] = 188 + 64;
@@ -201,7 +202,7 @@ public class PlayerClient {
                 spot.s.origin[2] = 80;
                 spot.targetname = "jail3";
                 spot.s.angles[1] = 90;
-    
+
                 spot = GameUtil.G_Spawn();
                 spot.classname = "info_player_coop";
                 spot.s.origin[0] = 188 + 128;
@@ -223,9 +224,9 @@ public class PlayerClient {
     	public String getID() { return "body_die"; }
         public void die(Entity self, Entity inflictor, Entity attacker,
                 int damage, float[] point) {
-    
+
             int n;
-    
+
             if (self.health < -40) {
                 ServerGame.PF_StartSound(self, Constants.CHAN_BODY, ServerInit.SV_SoundIndex("misc/udeath.wav"), (float) 1, (float) Constants.ATTN_NORM,
                 (float) 0);
@@ -241,7 +242,7 @@ public class PlayerClient {
     static Entity pm_passent;
     // pmove doesn't need to know about passent and contentmask
     public static PlayerMove.TraceAdapter PM_trace = new PlayerMove.TraceAdapter() {
-    
+
         public Trace trace(float[] start, float[] mins, float[] maxs,
                 float[] end) {
             if (pm_passent.health > 0)
@@ -249,7 +250,7 @@ public class PlayerClient {
             else
               return World.SV_Trace(start, mins, maxs, end, pm_passent, Constants.MASK_DEADSOLID);
         }
-    
+
     };
 
     /**
@@ -510,7 +511,7 @@ public class PlayerClient {
 
     /**
      * This is only called when the game first initializes in single player, but
-     * is called after each death and level change in deathmatch. 
+     * is called after each death and level change in deathmatch.
      */
     public static void InitClientPersistant(GameClient client) {
         GameItem item;
@@ -552,7 +553,7 @@ public class PlayerClient {
     /**
      * Some information that should be persistant, like health, is still stored
      * in the edict structure, so it needs to be mirrored out to the client
-     * structure before all the edicts are wiped. 
+     * structure before all the edicts are wiped.
      */
     public static void SaveClientData() {
         int i;
@@ -656,10 +657,10 @@ public class PlayerClient {
         do {
             es = GameBase.G_Find(es, GameBase.findByClass,
                     "info_player_deathmatch");
-            
-            if (es == null) 
+
+            if (es == null)
                 break;
-            
+
             spot = es.o;
             if (spot == spot1 || spot == spot2)
                 selection++;
@@ -668,7 +669,7 @@ public class PlayerClient {
         return spot;
     }
 
-    /** 
+    /**
 	 * If turned on in the dmflags, select a spawn point far away from other players.
      */
     static Entity SelectFarthestDeathmatchSpawnPoint() {
@@ -702,11 +703,11 @@ public class PlayerClient {
                 "info_player_deathmatch");
         if (edit == null)
             return null;
-        
+
         return edit.o;
     }
 
-    
+
     public static Entity SelectDeathmatchSpawnPoint() {
         if (0 != ((int) (GameBase.dmflags.value) & Constants.DF_SPAWN_FARTHEST))
             return SelectFarthestDeathmatchSpawnPoint();
@@ -734,19 +735,19 @@ public class PlayerClient {
 
             es = GameBase.G_Find(es, GameBase.findByClass,
                     "info_player_coop");
-                    
+
             if (es == null)
                 return null;
-            
+
             spot = es.o;
-                
+
             if (spot == null)
                 return null; // we didn't have enough...
 
             target = spot.targetname;
             if (target == null)
                 target = "";
-            if (Lib.Q_stricmp(GameBase.game.spawnpoint, target) == 0) { 
+            if (Lib.Q_stricmp(GameBase.game.spawnpoint, target) == 0) {
                 // this is a coop spawn point for one of the clients here
                 index--;
                 if (0 == index)
@@ -788,12 +789,12 @@ public class PlayerClient {
             }
 
             if (null == spot) {
-                if (GameBase.game.spawnpoint.length() == 0) { 
+                if (GameBase.game.spawnpoint.length() == 0) {
                     // there wasn't a spawnpoint without a
                     // target, so use any
                     es = GameBase.G_Find(es, GameBase.findByClass,
                             "info_player_start");
-                    
+
                     if (es != null)
                         spot = es.o;
                 }
@@ -994,14 +995,15 @@ public class PlayerClient {
         client = ent.client;
 
         // deathmatch wipes most client data every spawn
-        if (GameBase.deathmatch.value != 0) {           
+        if (GameBase.deathmatch.value != 0) {
 
             resp.set(client.resp);
             String userinfo = client.pers.userinfo;
             InitClientPersistant(client);
-            
-            userinfo = ClientUserinfoChanged(ent, userinfo);
-            
+
+            //userinfo = ClientUserinfoChanged(ent, userinfo);
+            userinfo = Globals.game.ClientUserinfoChanged.apply(ent, userinfo);
+
         } else if (GameBase.coop.value != 0) {
 
             resp.set(client.resp);
@@ -1011,7 +1013,8 @@ public class PlayerClient {
             resp.coop_respawn.game_helpchanged = client.pers.game_helpchanged;
             resp.coop_respawn.helpchanged = client.pers.helpchanged;
             client.pers.set(resp.coop_respawn);
-            userinfo = ClientUserinfoChanged(ent, userinfo);
+            //userinfo = ClientUserinfoChanged(ent, userinfo);
+            userinfo = Globals.game.ClientUserinfoChanged.apply(ent, userinfo);
             if (resp.score > client.pers.score)
                 client.pers.score = resp.score;
         } else {
@@ -1056,7 +1059,7 @@ public class PlayerClient {
         Math3D.VectorClear(ent.velocity);
 
         // clear playerstate values
-        ent.client.ps.clear();     
+        ent.client.ps.clear();
 
         client.ps.pmove.origin[0] = (short) (spawn_origin[0] * 8);
         client.ps.pmove.origin[1] = (short) (spawn_origin[1] * 8);
@@ -1128,7 +1131,7 @@ public class PlayerClient {
 
     /**
      * A client has just connected to the server in deathmatch mode, so clear
-     * everything out before starting them. 
+     * everything out before starting them.
      */
     public static void ClientBeginDeathmatch(Entity ent) {
         GameUtil.G_InitEdict(ent, ent.index);
@@ -1158,7 +1161,7 @@ public class PlayerClient {
 
     /**
      * Called when a client has finished connecting, and is ready to be placed
-     * into the game. This will happen every level load. 
+     * into the game. This will happen every level load.
      */
     public static void ClientBegin(Entity ent) {
         int i;
@@ -1212,9 +1215,9 @@ public class PlayerClient {
 
     /**
      * Called whenever the player updates a userinfo variable.
-     * 
+     *
      * The game can override any of the settings in place (forcing skins or
-     * names, etc) before copying it off. 
+     * names, etc) before copying it off.
      *
      */
     public static String ClientUserinfoChanged(Entity ent, String userinfo) {
@@ -1277,7 +1280,7 @@ public class PlayerClient {
      * entrance to a client by returning false. If the client is allowed, the
      * connection process will continue and eventually get to ClientBegin()
      * Changing levels will NOT cause this to be called again, but loadgames
-     * will. 
+     * will.
      */
     public static boolean ClientConnect(Entity ent, String userinfo) {
         String value;
@@ -1334,7 +1337,8 @@ public class PlayerClient {
                 InitClientPersistant(ent.client);
         }
 
-        userinfo = ClientUserinfoChanged(ent, userinfo);
+        //userinfo = ClientUserinfoChanged(ent, userinfo);
+        userinfo = Globals.game.ClientUserinfoChanged.apply(ent, userinfo);
 
         if (GameBase.game.maxclients > 1)
           ServerGame.PF_dprintf(ent.client.pers.netname + " connected\n");
@@ -1345,7 +1349,7 @@ public class PlayerClient {
     }
 
     /**
-     * Called when a player drops from the server. Will not be called between levels. 
+     * Called when a player drops from the server. Will not be called between levels.
      */
     public static void ClientDisconnect(Entity ent) {
         int playernum;
@@ -1374,22 +1378,22 @@ public class PlayerClient {
     }
 
     /*
-     * static int CheckBlock(int c) 
-     * { 
-     * 		int v, i; 
-     * 		v = 0; 
+     * static int CheckBlock(int c)
+     * {
+     * 		int v, i;
+     * 		v = 0;
      * 		for (i = 0; i < c; i++)
-     *			v += ((byte *) b)[i]; 
-     *		return v; 
+     *			v += ((byte *) b)[i];
+     *		return v;
      * }
-     * 
-     * public static void PrintPmove(pmove_t * pm) 
-     * { 
+     *
+     * public static void PrintPmove(pmove_t * pm)
+     * {
      *		unsigned c1, c2;
-     * 
+     *
      * 		c1 = CheckBlock(&pm.s, sizeof(pm.s));
-     * 		c2 = CheckBlock(&pm.cmd, sizeof(pm.cmd)); 
-     *      Com_Printf("sv %3i:%i %i\n", pm.cmd.impulse, c1, c2); 
+     * 		c2 = CheckBlock(&pm.cmd, sizeof(pm.cmd));
+     *      Com_Printf("sv %3i:%i %i\n", pm.cmd.impulse, c1, c2);
      * }
      */
 
@@ -1567,7 +1571,7 @@ public class PlayerClient {
 
     /**
      * This will be called once for each server frame, before running any other
-     * entities in the world. 
+     * entities in the world.
      */
     public static void ClientBeginServerFrame(Entity ent) {
         GameClient client;
@@ -1617,15 +1621,15 @@ public class PlayerClient {
         client.latched_buttons = 0;
     }
 
-    /** 
-     * Returns true, if the players gender flag was set to female. 
+    /**
+     * Returns true, if the players gender flag was set to female.
      */
     public static boolean IsFemale(Entity ent) {
         char info;
-    
+
         if (null == ent.client)
             return false;
-    
+
         info = Info.Info_ValueForKey(ent.client.pers.userinfo, "gender")
                 .charAt(0);
         if (info == 'f' || info == 'F')
@@ -1639,13 +1643,13 @@ public class PlayerClient {
      */
     public static boolean IsNeutral(Entity ent) {
         char info;
-    
+
         if (ent.client == null)
             return false;
-    
+
         info = Info.Info_ValueForKey(ent.client.pers.userinfo, "gender")
                 .charAt(0);
-    
+
         if (info != 'f' && info != 'F' && info != 'm' && info != 'M')
             return true;
         return false;
@@ -1657,9 +1661,9 @@ public class PlayerClient {
     public static void LookAtKiller(Entity self, Entity inflictor,
             Entity attacker) {
         float dir[] = { 0, 0, 0 };
-    
+
         Entity world = GameBase.g_edicts[0];
-    
+
         if (attacker != null && attacker != world && attacker != self) {
             Math3D.VectorSubtract(attacker.s.origin, self.s.origin, dir);
         } else if (inflictor != null && inflictor != world && inflictor != self) {
@@ -1668,7 +1672,7 @@ public class PlayerClient {
             self.client.killer_yaw = self.s.angles[Constants.YAW];
             return;
         }
-    
+
         if (dir[0] != 0)
             self.client.killer_yaw = (float) (180 / Math.PI * Math.atan2(
                     dir[1], dir[0]));
@@ -1681,52 +1685,52 @@ public class PlayerClient {
         }
         if (self.client.killer_yaw < 0)
             self.client.killer_yaw += 360;
-    
+
     }
-    
-    
-    /** 
-     * Drop items and weapons in deathmatch games. 
-     */ 
+
+
+    /**
+     * Drop items and weapons in deathmatch games.
+     */
     public static void TossClientWeapon(Entity self) {
         GameItem item;
         Entity drop;
         boolean quad;
         float spread;
-    
+
         if (GameBase.deathmatch.value == 0)
             return;
-    
+
         item = self.client.pers.weapon;
         if (0 == self.client.pers.inventory[self.client.ammo_index])
             item = null;
         if (item != null && (Lib.strcmp(item.pickup_name, "Blaster") == 0))
             item = null;
-    
+
         if (0 == ((int) (GameBase.dmflags.value) & Constants.DF_QUAD_DROP))
             quad = false;
         else
             quad = (self.client.quad_framenum > (GameBase.level.framenum + 10));
-    
+
         if (item != null && quad)
             spread = 22.5f;
         else
             spread = 0.0f;
-    
+
         if (item != null) {
             self.client.v_angle[Constants.YAW] -= spread;
             drop = GameItems.Drop_Item(self, item);
             self.client.v_angle[Constants.YAW] += spread;
             drop.spawnflags = Constants.DROPPED_PLAYER_ITEM;
         }
-    
+
         if (quad) {
             self.client.v_angle[Constants.YAW] += spread;
             drop = GameItems.Drop_Item(self, GameItems
                     .FindItemByClassname("item_quad"));
             self.client.v_angle[Constants.YAW] -= spread;
             drop.spawnflags |= Constants.DROPPED_PLAYER_ITEM;
-    
+
             drop.touch = GameItems.Touch_Item;
             drop.nextthink = GameBase.level.time
                     + (self.client.quad_framenum - GameBase.level.framenum)
