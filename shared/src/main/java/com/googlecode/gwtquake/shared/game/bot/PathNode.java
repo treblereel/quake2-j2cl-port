@@ -23,12 +23,75 @@
 */
 package com.googlecode.gwtquake.shared.game.bot;
 
-import com.googlecode.gwtquake.shared.game.Entity;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Navigation graph node for pathfinding.
- * Equivalent to C struct path_node_s.
+ * Navigation graph node for bot pathfinding.
+ * Equivalent to C struct path_node_t.
  */
 public class PathNode {
-    // Placeholder - to be filled in during Task 23
+    // Flag constants
+    public static final int TELEPORTER = 1;
+    public static final int LADDER = 2;
+    public static final int PLATFORM = 4;
+    public static final int JUMP = 8;
+
+    // Static storage for all nodes
+    public static List<PathNode> allNodes = new ArrayList<>();
+
+    // Instance fields
+    public float[] origin = new float[3];
+    public int index;
+    public PathNode[] neighbours;
+    public int neighbourCount;
+    public int flags;
+
+    /**
+     * Creates a new PathNode with default values.
+     * Initializes neighbourCount to 0, allocates neighbour array with capacity 16,
+     * and sets flags to 0.
+     */
+    public PathNode() {
+        this.neighbourCount = 0;
+        this.neighbours = new PathNode[16];
+        this.flags = 0;
+    }
+
+    /**
+     * Finds the nearest PathNode to the given position.
+     *
+     * @param pos the position as a float array [x, y, z]
+     * @return the nearest PathNode, or null if no nodes exist
+     */
+    public static PathNode findNearest(float[] pos) {
+        if (allNodes.isEmpty()) {
+            return null;
+        }
+
+        PathNode nearest = null;
+        float minDistance = Float.MAX_VALUE;
+
+        for (PathNode node : allNodes) {
+            float dx = node.origin[0] - pos[0];
+            float dy = node.origin[1] - pos[1];
+            float dz = node.origin[2] - pos[2];
+            float distance = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearest = node;
+            }
+        }
+
+        return nearest;
+    }
+
+    /**
+     * Clears all stored nodes.
+     */
+    public static void clearAll() {
+        allNodes.clear();
+    }
+
 }
