@@ -32,6 +32,8 @@ import com.googlecode.gwtquake.shared.game.adapters.EntityBlockedAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityPainAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityTouchAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityUseAdapter;
+import com.googlecode.gwtquake.shared.game.bot.BotInfo;
+import com.googlecode.gwtquake.shared.game.bot.BotInfoPers;
 import com.googlecode.gwtquake.shared.util.*;
 
 
@@ -279,6 +281,10 @@ public class Entity {
     public MonsterInfo monsterinfo = new MonsterInfo();
 
     public GameClient client;
+
+    // Bot AI data (null = not a bot, non-null = bot)
+    public BotInfo botInfo = null;
+    public BotInfoPers botPers = null;
 
     public Entity owner;
 
