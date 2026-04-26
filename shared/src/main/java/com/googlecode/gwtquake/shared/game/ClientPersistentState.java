@@ -59,7 +59,7 @@ public class ClientPersistentState {
 
 	//	client data that stays across multiple level loads
 	String userinfo= "";
-	String netname= "";
+	public String netname= "";
 	int hand;
 
 	boolean connected; // a loadgame will leave valid entities that
