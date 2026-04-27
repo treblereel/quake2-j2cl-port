@@ -21,8 +21,10 @@
 package com.googlecode.gwtquake.shared.game.bot;
 
 import com.googlecode.gwtquake.shared.common.Com;
+import com.googlecode.gwtquake.shared.common.Constants;
 import com.googlecode.gwtquake.shared.game.Entity;
 import com.googlecode.gwtquake.shared.game.Commands;
+import com.googlecode.gwtquake.shared.game.GameBase;
 import com.googlecode.gwtquake.shared.game.adapters.EntityThinkAdapter;
 
 import java.util.ArrayList;
@@ -79,6 +81,9 @@ public class BotMain {
         // 4. Combat
         // 5. Find pickups
         // 6. Update movement
+
+        // Reschedule for next frame
+        bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
     }
 
     /**

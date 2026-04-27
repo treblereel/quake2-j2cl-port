@@ -127,6 +127,9 @@ public class BotCommands {
         ent.botPers = pers;
         ent.client = GameBase.game.clients[ent.index - 1];
 
+        // Set movement type for proper physics
+        ent.movetype = Constants.MOVETYPE_WALK;
+
         // Set bot AI think callback
         ent.think = BotMain.thinkAdapter;
         ent.nextthink = GameBase.level.time + Constants.FRAMETIME;
