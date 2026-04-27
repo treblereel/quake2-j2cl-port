@@ -22,6 +22,7 @@ package com.googlecode.gwtquake.shared.game.bot;
 
 import com.googlecode.gwtquake.shared.common.Com;
 import com.googlecode.gwtquake.shared.common.Constants;
+import com.googlecode.gwtquake.shared.common.ExecutableCommand;
 import com.googlecode.gwtquake.shared.game.Entity;
 import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.game.GameBase;
@@ -60,7 +61,11 @@ public class BotMain {
         Com.Printf("Bot subsystem initializing...\n");
 
         // Register console commands
-        // TODO: Commands.addCommand("sv", BotCommands::serverCommand);
+        Commands.addCommand("sv", new ExecutableCommand() {
+            public void execute() {
+                BotCommands.serverCommand();
+            }
+        });
 
         // Clear path nodes
         PathNode.clearAll();
