@@ -58,20 +58,42 @@ public class BotMain {
      * Initialize bot subsystem (called from SV_InitGame).
      */
     public static void init() {
-        Com.Printf("Bot subsystem initializing...\n");
+        Com.Printf("=== Bot subsystem initializing ===\n");
 
-        // Register console commands
-        Commands.addCommand("sv", new ExecutableCommand() {
-            public void execute() {
-                BotCommands.serverCommand();
-            }
-        });
+        // Register console commands individually
+        try {
+            Commands.addCommand("addbot", new ExecutableCommand() {
+                public void execute() {
+                    Com.Printf("addbot command executed\n");
+                    BotCommands.addBot();
+                }
+            });
+
+            Commands.addCommand("addbots", new ExecutableCommand() {
+                public void execute() {
+                    Com.Printf("addbots command executed\n");
+                    BotCommands.addBots();
+                }
+            });
+
+            Commands.addCommand("removebot", new ExecutableCommand() {
+                public void execute() {
+                    Com.Printf("removebot command executed\n");
+                    BotCommands.removeBot();
+                }
+            });
+
+            Com.Printf("Bot commands registered: addbot, addbots, removebot\n");
+        } catch (Exception e) {
+            Com.Printf("ERROR registering bot commands: " + e.getMessage() + "\n");
+            e.printStackTrace();
+        }
 
         // Clear path nodes
         PathNode.clearAll();
         globalBots.clear();
 
-        Com.Printf("Bot subsystem initialized\n");
+        Com.Printf("=== Bot subsystem initialized ===\n");
     }
 
     /**

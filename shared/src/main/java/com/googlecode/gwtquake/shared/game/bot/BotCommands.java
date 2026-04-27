@@ -54,11 +54,11 @@ public class BotCommands {
         }
     }
 
-    private static void addBot() {
-        int skill = parseInt(Commands.Argv(2), 1);
-        String name = Commands.Argv(3);
-        String skin = Commands.Argv(4);
-        String model = Commands.Argv(5);
+    public static void addBot() {
+        int skill = parseInt(Commands.Argv(1), 1);
+        String name = Commands.Argv(2);
+        String skin = Commands.Argv(3);
+        String model = Commands.Argv(4);
 
         if (name.isEmpty()) name = "Bot";
         if (skin.isEmpty()) skin = "male/grunt";
@@ -67,8 +67,8 @@ public class BotCommands {
         spawnBot(name, skill, skin, model);
     }
 
-    private static void addBots() {
-        int count = parseInt(Commands.Argv(2), 1);
+    public static void addBots() {
+        int count = parseInt(Commands.Argv(1), 1);
 
         for (int i = 0; i < count; i++) {
             // Random skill 0-3
@@ -78,8 +78,8 @@ public class BotCommands {
         }
     }
 
-    private static void removeBot() {
-        String name = Commands.Argv(2);
+    public static void removeBot() {
+        String name = Commands.Argv(1);
 
         // Find bot by name
         for (int i = 1; i <= ServerMain.maxclients.value; i++) {
