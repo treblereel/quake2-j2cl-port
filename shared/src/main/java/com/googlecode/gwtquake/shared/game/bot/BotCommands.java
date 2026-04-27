@@ -133,11 +133,15 @@ public class BotCommands {
         info.strafeDir = 1f;
         Com.Printf(">>> spawnBot: BotInfo created\n");
 
-        // 4. CRITICAL: Mark entity as in-use BEFORE ClientConnect
+        // 4. CRITICAL: Mark entity as in-use and initialize client BEFORE ClientConnect
         // Otherwise ClientBegin will call G_InitEdict and reset everything
         ent.inuse = true;
         ent.client = GameBase.game.clients[ent.index - 1];
-        Com.Printf(">>> spawnBot: marked inuse=true, client set\n");
+
+        // Initialize client persistent data to clear any old spectator/etc flags
+        // This is normally done in ClientConnect if inuse==false, but we set inuse=true
+        PlayerClient.InitClientPersistant(ent.client);
+        Com.Printf(">>> spawnBot: marked inuse=true, client initialized\n");
 
         // 5. Build userinfo string
         String userinfo = "\\name\\" + name +
