@@ -69,7 +69,7 @@ public class BotChat {
 
         String msg = KILL_MESSAGES[(int)(Math.random() * KILL_MESSAGES.length)];
         ServerGame.PF_cprintf(null, Constants.PRINT_CHAT,
-            bot.client.pers.netname + ": " + msg);
+            bot.client.pers.netname + ": " + msg + "\n");
 
         bi.timeLastMessage = GameBase.level.time;
     }
@@ -93,7 +93,7 @@ public class BotChat {
 
         String msg = DEATH_MESSAGES[(int)(Math.random() * DEATH_MESSAGES.length)];
         ServerGame.PF_cprintf(null, Constants.PRINT_CHAT,
-            bot.client.pers.netname + ": " + msg);
+            bot.client.pers.netname + ": " + msg + "\n");
 
         bi.timeLastMessage = GameBase.level.time;
     }
