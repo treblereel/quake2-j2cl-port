@@ -144,14 +144,15 @@ public class BotMain {
             float accuracy = 0.5f + (bot.botPers.skill * 0.15f);
 
             if (Math.random() < accuracy) {
-                bot.client.userCommand.buttons |= 1;  // BUTTON_ATTACK
+                bot.client.userCommand.buttons |= Constants.BUTTON_ATTACK;
                 bi.timeNextShot = GameBase.level.time + 0.1f;
             }
         }
 
-        // Strafe evasion
-        if (Math.random() < 0.3f) {
+        // Strafe evasion - switch direction every 0.5-1.0 seconds
+        if (bi.timeLastStrafeSwitch < GameBase.level.time) {
             bi.strafeDir = -bi.strafeDir;
+            bi.timeLastStrafeSwitch = GameBase.level.time + 0.5f + (float)Math.random() * 0.5f;
         }
     }
 
@@ -250,7 +251,8 @@ public class BotMain {
 
         // Priority 1: Combat
         if (bot.enemy != null) {
-            moveToTarget(bot, bot.enemy.s.origin);
+            // Move forward toward enemy (aim angles set by combat())
+            bot.client.userCommand.forwardmove = 400;
             bot.client.userCommand.sidemove = (short)(bi.strafeDir * 400);  // Strafe
         }
         // Default: Roam
