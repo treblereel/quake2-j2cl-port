@@ -25,6 +25,7 @@ import com.googlecode.gwtquake.shared.common.Constants;
 import com.googlecode.gwtquake.shared.game.Entity;
 import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.game.GameBase;
+import com.googlecode.gwtquake.shared.game.PlayerClient;
 import com.googlecode.gwtquake.shared.game.adapters.EntityThinkAdapter;
 
 import java.util.ArrayList;
@@ -74,16 +75,68 @@ public class BotMain {
             return;  // Not a bot
         }
 
-        // TODO: Implement AI logic
-        // 1. Update sensors
-        // 2. Find enemies
-        // 3. Navigate
-        // 4. Combat
-        // 5. Find pickups
-        // 6. Update movement
+        // Update movement (roaming for now)
+        updateMovement(bot);
+
+        // Execute the bot's command through the player movement system
+        PlayerClient.ClientThink(bot, bot.client.userCommand);
 
         // Reschedule for next frame
         bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
+    }
+
+    /**
+     * Random roaming when bot has no target.
+     */
+    private static void roam(Entity bot) {
+        BotInfo bi = bot.botInfo;
+
+        // Change direction every 2-5 seconds
+        if (bi.timeNextRoamDirChange < GameBase.level.time) {
+            bot.client.ps.viewangles[1] = (float)(Math.random() * 360);
+            bi.timeNextRoamDirChange = GameBase.level.time + 2f + (float)Math.random() * 3f;
+        }
+
+        // Move forward
+        bot.client.userCommand.forwardmove = 400;
+    }
+
+    /**
+     * Move bot toward target position.
+     */
+    private static void moveToTarget(Entity bot, float[] target) {
+        float[] dir = new float[3];
+        dir[0] = target[0] - bot.s.origin[0];
+        dir[1] = target[1] - bot.s.origin[1];
+        dir[2] = 0;  // Ignore Z
+
+        // Calculate yaw
+        float yaw = (float)Math.atan2(dir[1], dir[0]) * 180f / (float)Math.PI;
+        bot.client.ps.viewangles[1] = yaw;
+
+        // Move forward
+        bot.client.userCommand.forwardmove = 400;
+    }
+
+    /**
+     * Update UserCommand based on bot intentions.
+     */
+    private static void updateMovement(Entity bot) {
+        BotInfo bi = bot.botInfo;
+
+        // Reset command
+        bot.client.userCommand.forwardmove = 0;
+        bot.client.userCommand.sidemove = 0;
+        bot.client.userCommand.upmove = 0;
+        bot.client.userCommand.buttons = 0;
+
+        // For now, just roam
+        roam(bot);
+
+        // Apply view angles to command
+        bot.client.userCommand.angles[0] = (short)(bot.client.ps.viewangles[0] * 65536 / 360);
+        bot.client.userCommand.angles[1] = (short)(bot.client.ps.viewangles[1] * 65536 / 360);
+        bot.client.userCommand.angles[2] = (short)(bot.client.ps.viewangles[2] * 65536 / 360);
     }
 
     /**

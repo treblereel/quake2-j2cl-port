@@ -119,6 +119,9 @@ public class GameClient
 	public Entity chase_target; // player we are chasing
 	public boolean update_chase; // need to update chase info?
 
+	// Bot command (for AI to control movement)
+	public UserCommand userCommand = new UserCommand();
+
 	public int index;
 
 	/** Clears the game client structure. */
