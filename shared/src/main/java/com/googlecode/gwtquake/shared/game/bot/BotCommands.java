@@ -55,6 +55,7 @@ public class BotCommands {
     }
 
     public static void addBot() {
+        Com.Printf(">>> addBot() called\n");
         int skill = parseInt(Commands.Argv(1), 1);
         String name = Commands.Argv(2);
         String skin = Commands.Argv(3);
@@ -64,16 +65,20 @@ public class BotCommands {
         if (skin.isEmpty()) skin = "male/grunt";
         if (model.isEmpty()) model = "male";
 
+        Com.Printf(">>> addBot: skill=" + skill + " name=" + name + " skin=" + skin + " model=" + model + "\n");
         spawnBot(name, skill, skin, model);
     }
 
     public static void addBots() {
+        Com.Printf(">>> addBots() called\n");
         int count = parseInt(Commands.Argv(1), 1);
+        Com.Printf(">>> addBots: spawning " + count + " bots\n");
 
         for (int i = 0; i < count; i++) {
             // Random skill 0-3
             int skill = (int)(Math.random() * 4);
             String name = "Bot" + (i + 1);
+            Com.Printf(">>> addBots: spawning bot " + (i+1) + "/" + count + "\n");
             spawnBot(name, skill, "male/grunt", "male");
         }
     }
@@ -100,12 +105,15 @@ public class BotCommands {
      * Spawn a bot into the game.
      */
     public static void spawnBot(String name, int skill, String skin, String model) {
+        Com.Printf(">>> spawnBot START: name=" + name + " skill=" + skill + "\n");
+
         // 1. Find free client slot
         Entity ent = findFreeClientSlot();
         if (ent == null) {
-            Com.Printf("No free client slots\n");
+            Com.Printf(">>> spawnBot FAILED: No free client slots\n");
             return;
         }
+        Com.Printf(">>> spawnBot: found slot index=" + ent.index + "\n");
 
         // 2. Create BotInfoPers
         BotInfoPers pers = new BotInfoPers();
@@ -118,48 +126,72 @@ public class BotCommands {
         pers.attackRange = 1000f;
         pers.engageRange = 1500f;
         pers.playerNum = ent.index - 1;
+        Com.Printf(">>> spawnBot: BotInfoPers created\n");
 
         // 3. Create BotInfo
         BotInfo info = new BotInfo();
         info.strafeDir = 1f;
+        Com.Printf(">>> spawnBot: BotInfo created\n");
 
         // 4. Configure Entity
         ent.botInfo = info;
         ent.botPers = pers;
         ent.client = GameBase.game.clients[ent.index - 1];
+        Com.Printf(">>> spawnBot: attached to entity\n");
 
         // Set movement type for proper physics
         ent.movetype = Constants.MOVETYPE_WALK;
+        Com.Printf(">>> spawnBot: movetype set\n");
 
         // Set bot AI think callback
         ent.think = BotMain.thinkAdapter;
         ent.nextthink = GameBase.level.time + Constants.FRAMETIME;
+        Com.Printf(">>> spawnBot: think callback set\n");
 
         // 5. Build userinfo string
         String userinfo = "\\name\\" + name +
                          "\\skin\\" + skin +
                          "\\model\\" + model;
+        Com.Printf(">>> spawnBot: calling ClientConnect with userinfo=" + userinfo + "\n");
 
         // 6. Connect as client
-        PlayerClient.ClientConnect(ent, userinfo);
-        PlayerClient.ClientBegin(ent);
+        try {
+            PlayerClient.ClientConnect(ent, userinfo);
+            Com.Printf(">>> spawnBot: ClientConnect done\n");
+        } catch (Exception e) {
+            Com.Printf(">>> spawnBot ERROR in ClientConnect: " + e.getMessage() + "\n");
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            PlayerClient.ClientBegin(ent);
+            Com.Printf(">>> spawnBot: ClientBegin done\n");
+        } catch (Exception e) {
+            Com.Printf(">>> spawnBot ERROR in ClientBegin: " + e.getMessage() + "\n");
+            e.printStackTrace();
+            return;
+        }
 
         // 7. Register bot
         BotMain.registerBot(pers);
 
-        Com.Printf("Bot '" + name + "' (skill " + skill + ") spawned\n");
+        Com.Printf(">>> spawnBot SUCCESS: Bot '" + name + "' (skill " + skill + ") spawned at index " + ent.index + "\n");
     }
 
     /**
      * Find first free client slot.
      */
     private static Entity findFreeClientSlot() {
+        Com.Printf(">>> findFreeClientSlot: searching...\n");
         for (int i = 1; i <= ServerMain.maxclients.value; i++) {
             Entity ent = GameBase.g_edicts[i];
             if (!ent.inuse) {
+                Com.Printf(">>> findFreeClientSlot: found slot " + i + "\n");
                 return ent;
             }
         }
+        Com.Printf(">>> findFreeClientSlot: NO FREE SLOTS (maxclients=" + (int)ServerMain.maxclients.value + ")\n");
         return null;
     }
 
