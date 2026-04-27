@@ -142,16 +142,12 @@ public class BotCommands {
         // This is normally done in ClientConnect if inuse==false, but we set inuse=true
         PlayerClient.InitClientPersistant(ent.client);
         Com.Printf(">>> spawnBot: marked inuse=true, client initialized\n");
-        Com.Printf(">>> After InitClientPersistant: spectator=" + ent.client.pers.spectator + "\n");
 
-        // CRITICAL: Explicitly mark bot as non-spectator
-        ent.client.pers.spectator = false;
-        Com.Printf(">>> Forced spectator=false for bot\n");
-
-        // 5. Build userinfo string
+        // 5. Build userinfo string (add spectator=0 to force non-spectator mode)
         String userinfo = "\\name\\" + name +
                          "\\skin\\" + skin +
-                         "\\model\\" + model;
+                         "\\model\\" + model +
+                         "\\spectator\\0";
         Com.Printf(">>> spawnBot: calling ClientConnect with userinfo=" + userinfo + "\n");
 
         // 6. Connect as client
@@ -164,6 +160,11 @@ public class BotCommands {
             e.printStackTrace();
             return;
         }
+
+        // CRITICAL: Force spectator=false AFTER ClientConnect
+        // ClientConnect may set it based on userinfo parsing
+        ent.client.pers.spectator = false;
+        Com.Printf(">>> Forced spectator=false after ClientConnect\n");
 
         try {
             Com.Printf(">>> Before ClientBegin: spectator=" + ent.client.pers.spectator + "\n");
