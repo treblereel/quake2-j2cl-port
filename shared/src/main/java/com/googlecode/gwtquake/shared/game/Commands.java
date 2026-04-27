@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import com.googlecode.gwtquake.shared.common.*;
+import com.googlecode.gwtquake.shared.game.bot.BotCommands;
 import com.googlecode.gwtquake.shared.game.monsters.MonsterPlayer;
 import com.googlecode.gwtquake.shared.server.ServerGame;
 import com.googlecode.gwtquake.shared.util.Lib;
@@ -1284,6 +1285,12 @@ public final class Commands {
             PlayerList_f(ent);
         else if (cmd.equals("showposition"))
             ShowPosition_f(ent);
+        else if (cmd.equals("addbot"))
+            BotCommands.addBot();
+        else if (cmd.equals("addbots"))
+            BotCommands.addBots();
+        else if (cmd.equals("removebot"))
+            BotCommands.removeBot();
         else
             // anything that doesn't match a command will be a chat
             Say_f(ent, false, true);
