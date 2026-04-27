@@ -45,7 +45,7 @@ public class BotCommands {
             addBot();
         }
         else if ("addbots".equals(cmd)) {
-            // sv addbots <skill> <count>
+            // sv addbots <count>
             addBots();
         }
         else if ("removebot".equals(cmd)) {
@@ -68,10 +68,11 @@ public class BotCommands {
     }
 
     private static void addBots() {
-        int skill = parseInt(Commands.Argv(2), 1);
-        int count = parseInt(Commands.Argv(3), 1);
+        int count = parseInt(Commands.Argv(2), 1);
 
         for (int i = 0; i < count; i++) {
+            // Random skill 0-3
+            int skill = (int)(Math.random() * 4);
             String name = "Bot" + (i + 1);
             spawnBot(name, skill, "male/grunt", "male");
         }
