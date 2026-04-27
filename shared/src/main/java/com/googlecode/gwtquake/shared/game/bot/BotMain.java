@@ -80,6 +80,9 @@ public class BotMain {
         // Find enemies
         findEnemy(bot);
 
+        // Combat
+        combat(bot);
+
         // Update movement (roaming for now)
         updateMovement(bot);
 
@@ -91,6 +94,65 @@ public class BotMain {
 
         // Reschedule for next frame
         bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
+    }
+
+    /**
+     * Aim bot at current enemy with predictive leading.
+     */
+    private static void aimAtEnemy(Entity bot) {
+        if (bot.enemy == null) return;
+
+        float[] dir = new float[3];
+        dir[0] = bot.enemy.s.origin[0] - bot.s.origin[0];
+        dir[1] = bot.enemy.s.origin[1] - bot.s.origin[1];
+        dir[2] = bot.enemy.s.origin[2] - bot.s.origin[2];
+
+        // Simple predictive leading
+        float dist = (float)Math.sqrt(dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2]);
+        float timeToHit = dist / 1000f;  // Projectile speed estimate
+
+        float[] predicted = new float[3];
+        predicted[0] = bot.enemy.s.origin[0] + bot.enemy.velocity[0] * timeToHit;
+        predicted[1] = bot.enemy.s.origin[1] + bot.enemy.velocity[1] * timeToHit;
+        predicted[2] = bot.enemy.s.origin[2] + bot.enemy.velocity[2] * timeToHit;
+
+        // Calculate angles to predicted position
+        dir[0] = predicted[0] - bot.s.origin[0];
+        dir[1] = predicted[1] - bot.s.origin[1];
+        dir[2] = predicted[2] - bot.s.origin[2];
+
+        float yaw = (float)Math.atan2(dir[1], dir[0]) * 180f / (float)Math.PI;
+        float pitch = (float)Math.atan2(-dir[2], Math.sqrt(dir[0]*dir[0] + dir[1]*dir[1])) * 180f / (float)Math.PI;
+
+        bot.client.ps.viewangles[0] = pitch;
+        bot.client.ps.viewangles[1] = yaw;
+    }
+
+    /**
+     * Combat logic - aim and shoot at enemy.
+     */
+    private static void combat(Entity bot) {
+        if (bot.enemy == null) return;
+
+        BotInfo bi = bot.botInfo;
+
+        // Aim at enemy
+        aimAtEnemy(bot);
+
+        // Shoot with skill-based accuracy
+        if (bi.timeNextShot < GameBase.level.time) {
+            float accuracy = 0.5f + (bot.botPers.skill * 0.15f);
+
+            if (Math.random() < accuracy) {
+                bot.client.userCommand.buttons |= 1;  // BUTTON_ATTACK
+                bi.timeNextShot = GameBase.level.time + 0.1f;
+            }
+        }
+
+        // Strafe evasion
+        if (Math.random() < 0.3f) {
+            bi.strafeDir = -bi.strafeDir;
+        }
     }
 
     /**
@@ -186,8 +248,15 @@ public class BotMain {
         bot.client.userCommand.upmove = 0;
         bot.client.userCommand.buttons = 0;
 
-        // For now, just roam
-        roam(bot);
+        // Priority 1: Combat
+        if (bot.enemy != null) {
+            moveToTarget(bot, bot.enemy.s.origin);
+            bot.client.userCommand.sidemove = (short)(bi.strafeDir * 400);  // Strafe
+        }
+        // Default: Roam
+        else {
+            roam(bot);
+        }
 
         // Apply view angles to command
         bot.client.userCommand.angles[0] = (short)(bot.client.ps.viewangles[0] * 65536 / 360);
