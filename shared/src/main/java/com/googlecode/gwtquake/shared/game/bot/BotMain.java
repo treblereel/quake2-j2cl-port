@@ -78,6 +78,9 @@ public class BotMain {
         // Update movement (roaming for now)
         updateMovement(bot);
 
+        // Set elapsed time for movement physics
+        bot.client.userCommand.msec = 100;  // FRAMETIME in milliseconds
+
         // Execute the bot's command through the player movement system
         PlayerClient.ClientThink(bot, bot.client.userCommand);
 
