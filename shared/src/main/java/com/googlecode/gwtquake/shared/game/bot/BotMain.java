@@ -25,8 +25,10 @@ import com.googlecode.gwtquake.shared.common.Constants;
 import com.googlecode.gwtquake.shared.game.Entity;
 import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.game.GameBase;
+import com.googlecode.gwtquake.shared.game.GameUtil;
 import com.googlecode.gwtquake.shared.game.PlayerClient;
 import com.googlecode.gwtquake.shared.game.adapters.EntityThinkAdapter;
+import com.googlecode.gwtquake.shared.server.ServerMain;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,6 +77,9 @@ public class BotMain {
             return;  // Not a bot
         }
 
+        // Find enemies
+        findEnemy(bot);
+
         // Update movement (roaming for now)
         updateMovement(bot);
 
@@ -86,6 +91,54 @@ public class BotMain {
 
         // Reschedule for next frame
         bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
+    }
+
+    /**
+     * Scan for visible enemies and select best target.
+     */
+    private static void findEnemy(Entity bot) {
+        BotInfo bi = bot.botInfo;
+
+        // Throttle enemy search based on skill
+        if (bi.timeNextEnemy > GameBase.level.time) {
+            return;
+        }
+
+        bi.timeNextEnemy = GameBase.level.time + 0.1f * (4 - bot.botPers.skill);
+
+        Entity bestEnemy = null;
+        float bestScore = 0;
+
+        // Scan all players
+        for (int i = 1; i <= ServerMain.maxclients.value; i++) {
+            Entity target = GameBase.g_edicts[i];
+
+            if (!target.inuse || target == bot) continue;
+            if (target.health <= 0) continue;
+            if (target.botInfo != null) continue;  // Don't attack bots (yet)
+
+            // Check visibility
+            if (!GameUtil.visible(bot, target)) continue;
+
+            // Score target (closer = better, wounded = higher priority)
+            float dx = target.s.origin[0] - bot.s.origin[0];
+            float dy = target.s.origin[1] - bot.s.origin[1];
+            float dz = target.s.origin[2] - bot.s.origin[2];
+            float dist = (float)Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+            float score = 1000f / (dist + 1);
+
+            if (target.health < 50) {
+                score *= 1.5f;  // Priority to wounded
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestEnemy = target;
+            }
+        }
+
+        bot.enemy = bestEnemy;
     }
 
     /**
