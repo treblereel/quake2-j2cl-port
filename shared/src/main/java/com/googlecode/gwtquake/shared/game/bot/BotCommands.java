@@ -177,6 +177,10 @@ public class BotCommands {
         BotMain.registerBot(pers);
 
         Com.Printf(">>> spawnBot SUCCESS: Bot '" + name + "' (skill " + skill + ") spawned at index " + ent.index + "\n");
+        Com.Printf(">>> Bot state: inuse=" + ent.inuse + " pos=[" + ent.s.origin[0] + "," + ent.s.origin[1] + "," + ent.s.origin[2] + "]");
+        Com.Printf(" modelindex=" + ent.s.modelindex + " solid=" + ent.solid + " svflags=" + ent.svflags + " classname=" + ent.classname + "\n");
+        Com.Printf(">>> Bot fields: botInfo=" + (ent.botInfo != null) + " botPers=" + (ent.botPers != null) +
+                   " think=" + (ent.think != null) + " nextthink=" + ent.nextthink + "\n");
     }
 
     /**

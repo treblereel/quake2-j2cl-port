@@ -101,7 +101,14 @@ public class BotMain {
      */
     public static void think(Entity bot) {
         if (bot.botInfo == null) {
+            Com.Printf(">>> BotMain.think: botInfo is NULL for entity " + bot.index + "\n");
             return;  // Not a bot
+        }
+
+        // Debug output once per second
+        if (bot.botInfo.timeNextEnemy <= GameBase.level.time) {
+            Com.Printf(">>> BotMain.think: Bot '" + bot.botPers.name + "' thinking at pos=[" +
+                bot.s.origin[0] + "," + bot.s.origin[1] + "," + bot.s.origin[2] + "]\n");
         }
 
         // Find enemies
