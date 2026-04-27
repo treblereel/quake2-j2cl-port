@@ -100,7 +100,7 @@ public class GameItem {
 
     String ammo; // for weapons
 
-    int flags; // IT_* flags
+    public int flags; // IT_* flags
 
     int weapmodel; // weapon model index (for weapons)
 

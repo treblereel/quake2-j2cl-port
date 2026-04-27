@@ -83,6 +83,9 @@ public class BotMain {
         // Combat
         combat(bot);
 
+        // Find pickups
+        findPickups(bot);
+
         // Update movement (roaming for now)
         updateMovement(bot);
 
@@ -238,6 +241,108 @@ public class BotMain {
     }
 
     /**
+     * Check if item is in unreachable list.
+     */
+    private static boolean isUnreachable(BotInfo bi, Entity item) {
+        for (int i = 0; i < bi.unreachable.length; i++) {
+            if (bi.unreachable[i] == item) {
+                if (bi.timeUnreachable[i] > GameBase.level.time) {
+                    return true;  // Still unreachable
+                }
+                // Expired - clear slot
+                bi.unreachable[i] = null;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Score item based on bot's needs.
+     */
+    private static float evaluateItem(Entity bot, Entity item) {
+        float score = 0;
+
+        // Check item type and assign base score
+        if (item.item == null) return 0;
+
+        // Weapons
+        if ((item.item.flags & Constants.IT_WEAPON) != 0) {
+            score = 100;
+        }
+        // Armor
+        else if ((item.item.flags & Constants.IT_ARMOR) != 0) {
+            score = 80;
+        }
+        // Ammo
+        else if ((item.item.flags & Constants.IT_AMMO) != 0) {
+            score = 50;
+        }
+        // Powerups (includes health items, since they don't have a specific flag)
+        else if ((item.item.flags & Constants.IT_POWERUP) != 0) {
+            if (bot.health < 100) {
+                score = 90 * (100 - bot.health) / 100f;
+            } else {
+                score = 70;  // Powerups still valuable
+            }
+        }
+        // Other pickable items (health items that aren't powerups)
+        else {
+            if (bot.health < 100) {
+                score = 85 * (100 - bot.health) / 100f;
+            }
+        }
+
+        // Distance penalty
+        float dx = item.s.origin[0] - bot.s.origin[0];
+        float dy = item.s.origin[1] - bot.s.origin[1];
+        float dz = item.s.origin[2] - bot.s.origin[2];
+        float dist = (float)Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        score = score * 1000f / (dist + 100f);
+
+        return score;
+    }
+
+    /**
+     * Scan for items to pick up.
+     */
+    private static void findPickups(Entity bot) {
+        if (bot.enemy != null) return;  // Don't pick up during combat
+
+        BotInfo bi = bot.botInfo;
+
+        if (bi.timeNextPickup > GameBase.level.time) {
+            return;
+        }
+
+        bi.timeNextPickup = GameBase.level.time + 0.5f;
+
+        Entity bestItem = null;
+        float bestScore = 0;
+
+        // Scan all entities
+        for (int i = (int)ServerMain.maxclients.value + 1; i < GameBase.num_edicts; i++) {
+            Entity item = GameBase.g_edicts[i];
+
+            if (!item.inuse) continue;
+            if (item.item == null) continue;
+            if ((item.svflags & 1) != 0) continue;  // SVF_NOCLIENT
+
+            if (isUnreachable(bi, item)) continue;
+
+            float score = evaluateItem(bot, item);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestItem = item;
+            }
+        }
+
+        bi.pickupTarget = bestItem;
+        bi.pickupTargetScore = bestScore;
+    }
+
+    /**
      * Update UserCommand based on bot intentions.
      */
     private static void updateMovement(Entity bot) {
@@ -254,6 +359,10 @@ public class BotMain {
             // Move forward toward enemy (aim angles set by combat())
             bot.client.userCommand.forwardmove = 400;
             bot.client.userCommand.sidemove = (short)(bi.strafeDir * 400);  // Strafe
+        }
+        // Priority 2: Pickup
+        else if (bi.pickupTarget != null) {
+            moveToTarget(bot, bi.pickupTarget.s.origin);
         }
         // Default: Roam
         else {
