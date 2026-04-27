@@ -33,6 +33,7 @@ import com.googlecode.gwtquake.shared.client.Client;
 import com.googlecode.gwtquake.shared.client.Screen;
 import com.googlecode.gwtquake.shared.common.*;
 import com.googlecode.gwtquake.shared.game.*;
+import com.googlecode.gwtquake.shared.game.bot.BotMain;
 import com.googlecode.gwtquake.shared.sys.NET;
 import com.googlecode.gwtquake.shared.util.Lib;
 import com.googlecode.gwtquake.shared.util.Math3D;
@@ -387,6 +388,9 @@ public class ServerInit {
             svs.clients[i].edict = ent;
             svs.clients[i].lastcmd = new UserCommand();
         }
+
+        // Initialize bot subsystem
+        BotMain.init();
     }
 
     private static String firstmap = "";
