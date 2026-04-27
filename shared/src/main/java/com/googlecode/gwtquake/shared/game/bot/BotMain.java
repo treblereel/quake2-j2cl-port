@@ -23,6 +23,7 @@ package com.googlecode.gwtquake.shared.game.bot;
 import com.googlecode.gwtquake.shared.common.Com;
 import com.googlecode.gwtquake.shared.game.Entity;
 import com.googlecode.gwtquake.shared.game.Commands;
+import com.googlecode.gwtquake.shared.game.adapters.EntityThinkAdapter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +36,17 @@ import java.util.List;
 public class BotMain {
 
     private static List<BotInfoPers> globalBots = new ArrayList<>();
+
+    /**
+     * Entity think adapter for bot AI.
+     */
+    public static EntityThinkAdapter thinkAdapter = new EntityThinkAdapter() {
+        public String getID() { return "bot_think"; }
+        public boolean think(Entity self) {
+            BotMain.think(self);
+            return true;
+        }
+    };
 
     /**
      * Initialize bot subsystem (called from SV_InitGame).

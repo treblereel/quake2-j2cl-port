@@ -430,9 +430,9 @@ public class GameBase {
             }
 
             if (i > 0 && i <= maxclients.value) {
-                // Bot entity - use bot AI
+                // Bot entity - use standard entity processing with bot think callback
                 if (ent.botInfo != null) {
-                    BotMain.think(ent);
+                    Globals.game.RunEntity.accept(ent);
                     continue;
                 }
 

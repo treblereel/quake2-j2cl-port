@@ -21,6 +21,7 @@
 package com.googlecode.gwtquake.shared.game.bot;
 
 import com.googlecode.gwtquake.shared.common.Com;
+import com.googlecode.gwtquake.shared.common.Constants;
 import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.game.Entity;
 import com.googlecode.gwtquake.shared.game.PlayerClient;
@@ -125,6 +126,10 @@ public class BotCommands {
         ent.botInfo = info;
         ent.botPers = pers;
         ent.client = GameBase.game.clients[ent.index - 1];
+
+        // Set bot AI think callback
+        ent.think = BotMain.thinkAdapter;
+        ent.nextthink = GameBase.level.time + Constants.FRAMETIME;
 
         // 5. Build userinfo string
         String userinfo = "\\name\\" + name +
