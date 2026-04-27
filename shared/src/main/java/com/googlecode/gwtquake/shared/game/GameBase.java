@@ -36,6 +36,7 @@ import com.googlecode.gwtquake.shared.common.CommandBuffer;
 import com.googlecode.gwtquake.shared.common.ConsoleVariables;
 import com.googlecode.gwtquake.shared.common.Constants;
 import com.googlecode.gwtquake.shared.common.Globals;
+import com.googlecode.gwtquake.shared.game.bot.BotMain;
 import com.googlecode.gwtquake.shared.server.SV;
 import com.googlecode.gwtquake.shared.server.ServerGame;
 import com.googlecode.gwtquake.shared.server.ServerSend;
@@ -429,6 +430,12 @@ public class GameBase {
             }
 
             if (i > 0 && i <= maxclients.value) {
+                // Bot entity - use bot AI
+                if (ent.botInfo != null) {
+                    BotMain.think(ent);
+                    continue;
+                }
+
                 PlayerClient.ClientBeginServerFrame(ent);
                 continue;
             }
