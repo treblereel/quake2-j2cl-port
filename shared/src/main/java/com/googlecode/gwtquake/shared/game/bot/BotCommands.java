@@ -133,20 +133,11 @@ public class BotCommands {
         info.strafeDir = 1f;
         Com.Printf(">>> spawnBot: BotInfo created\n");
 
-        // 4. Configure Entity
-        ent.botInfo = info;
-        ent.botPers = pers;
+        // 4. CRITICAL: Mark entity as in-use BEFORE ClientConnect
+        // Otherwise ClientBegin will call G_InitEdict and reset everything
+        ent.inuse = true;
         ent.client = GameBase.game.clients[ent.index - 1];
-        Com.Printf(">>> spawnBot: attached to entity\n");
-
-        // Set movement type for proper physics
-        ent.movetype = Constants.MOVETYPE_WALK;
-        Com.Printf(">>> spawnBot: movetype set\n");
-
-        // Set bot AI think callback
-        ent.think = BotMain.thinkAdapter;
-        ent.nextthink = GameBase.level.time + Constants.FRAMETIME;
-        Com.Printf(">>> spawnBot: think callback set\n");
+        Com.Printf(">>> spawnBot: marked inuse=true, client set\n");
 
         // 5. Build userinfo string
         String userinfo = "\\name\\" + name +
@@ -173,7 +164,18 @@ public class BotCommands {
             return;
         }
 
-        // 7. Register bot
+        // 7. Configure bot-specific fields AFTER ClientBegin
+        // This ensures they aren't lost during initialization
+        ent.botInfo = info;
+        ent.botPers = pers;
+        Com.Printf(">>> spawnBot: bot fields attached\n");
+
+        // Set bot AI think callback
+        ent.think = BotMain.thinkAdapter;
+        ent.nextthink = GameBase.level.time + Constants.FRAMETIME;
+        Com.Printf(">>> spawnBot: think callback set\n");
+
+        // 8. Register bot
         BotMain.registerBot(pers);
 
         Com.Printf(">>> spawnBot SUCCESS: Bot '" + name + "' (skill " + skill + ") spawned at index " + ent.index + "\n");
