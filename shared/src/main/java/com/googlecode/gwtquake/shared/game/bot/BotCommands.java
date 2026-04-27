@@ -153,6 +153,7 @@ public class BotCommands {
         try {
             PlayerClient.ClientConnect(ent, userinfo);
             Com.Printf(">>> spawnBot: ClientConnect done\n");
+            Com.Printf(">>> After ClientConnect: spectator=" + ent.client.pers.spectator + " solid=" + ent.solid + " svflags=" + ent.svflags + "\n");
         } catch (Exception e) {
             Com.Printf(">>> spawnBot ERROR in ClientConnect: " + e.getMessage() + "\n");
             e.printStackTrace();
@@ -160,8 +161,10 @@ public class BotCommands {
         }
 
         try {
+            Com.Printf(">>> Before ClientBegin: spectator=" + ent.client.pers.spectator + "\n");
             PlayerClient.ClientBegin(ent);
             Com.Printf(">>> spawnBot: ClientBegin done\n");
+            Com.Printf(">>> After ClientBegin: solid=" + ent.solid + " svflags=" + ent.svflags + " classname=" + ent.classname + "\n");
         } catch (Exception e) {
             Com.Printf(">>> spawnBot ERROR in ClientBegin: " + e.getMessage() + "\n");
             e.printStackTrace();
