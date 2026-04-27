@@ -32,6 +32,7 @@ import com.googlecode.gwtquake.shared.game.PlayerMove.TraceAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityDieAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityThinkAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityPainAdapter;
+import com.googlecode.gwtquake.shared.game.bot.BotChat;
 import com.googlecode.gwtquake.shared.game.monsters.MonsterPlayer;
 import com.googlecode.gwtquake.shared.server.ServerGame;
 import com.googlecode.gwtquake.shared.server.ServerInit;
@@ -413,6 +414,15 @@ public class PlayerClient {
                 if (GameBase.deathmatch.value != 0)
                     self.client.resp.score--;
                 self.enemy = null;
+
+                // Bot chat hooks
+                if (attacker != null && attacker.botInfo != null) {
+                    BotChat.onKill(attacker, self);
+                }
+                if (self.botInfo != null) {
+                    BotChat.onDeath(self, attacker);
+                }
+
                 return;
             }
 
@@ -498,6 +508,15 @@ public class PlayerClient {
                         else
                             attacker.client.resp.score++;
                     }
+
+                    // Bot chat hooks
+                    if (attacker.botInfo != null) {
+                        BotChat.onKill(attacker, self);
+                    }
+                    if (self.botInfo != null) {
+                        BotChat.onDeath(self, attacker);
+                    }
+
                     return;
                 }
             }
@@ -507,6 +526,14 @@ public class PlayerClient {
         + " died.\n");
         if (GameBase.deathmatch.value != 0)
             self.client.resp.score--;
+
+        // Bot chat hooks
+        if (attacker != null && attacker.botInfo != null) {
+            BotChat.onKill(attacker, self);
+        }
+        if (self.botInfo != null) {
+            BotChat.onDeath(self, attacker);
+        }
     }
 
     /**
