@@ -30,6 +30,7 @@ import java.util.function.Function;
 
 import com.googlecode.gwtquake.shared.common.*;
 import com.googlecode.gwtquake.shared.game.bot.BotCommands;
+import com.googlecode.gwtquake.shared.game.bot.PathNodeLoader;
 import com.googlecode.gwtquake.shared.game.monsters.MonsterPlayer;
 import com.googlecode.gwtquake.shared.server.ServerGame;
 import com.googlecode.gwtquake.shared.util.Lib;
@@ -1291,6 +1292,12 @@ public final class Commands {
             BotCommands.addBots();
         else if (cmd.equals("removebot"))
             BotCommands.removeBot();
+        else if (cmd.equals("loadnodes"))
+            PathNodeLoader.loadRoutes();
+        else if (cmd.equals("savenodes"))
+            PathNodeLoader.saveRoutes();
+        else if (cmd.equals("dumpnodes"))
+            PathNodeLoader.dumpNodes();
         else
             // anything that doesn't match a command will be a chat
             Say_f(ent, false, true);
