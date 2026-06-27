@@ -274,6 +274,7 @@ public abstract class Gl1Context {
 
   public static final int GL_POINT_SIZE_MAX = 0x00008127;
   public static final int GL_POINT_SIZE_MIN = 0x00008126;
+  public static final int GL_POINT_DISTANCE_ATTENUATION = 0x00008129;
 
   /** Only supported in begin..end */
   public static final int _GL_QUADS = 7;
@@ -512,6 +513,9 @@ public abstract class Gl1Context {
   }
 
   public abstract void glPointParameterf(int id, float value);
+
+  public void glPointParameterfv(int id, FloatBuffer params) {
+  }
 
   public void updatTCBuffer(FloatBuffer dstTextureCoords, int minIdx, int i) {
     // TODO Auto-generated method stub

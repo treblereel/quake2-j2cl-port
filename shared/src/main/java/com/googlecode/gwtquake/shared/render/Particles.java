@@ -103,6 +103,8 @@ public class Particles {
     if (GlConfig.gl_ext_pointparameters.value != 0.0f
         && GlState.qglPointParameterfEXT) {
 
+      int numParticles = GlState.r_newrefdef.num_particles;
+
       // gl.glEnableClientState(GLAdapter.GL_VERTEX_ARRAY);
       GlState.gl.glVertexPointer(3, 0, Particles.vertexArray);
       GlState.gl.glEnableClientState(Gl1Context.GL_COLOR_ARRAY);
@@ -110,11 +112,16 @@ public class Particles {
 
       GlState.gl.glDepthMask(false);
       GlState.gl.glEnable(Gl1Context.GL_BLEND);
+      GlState.gl.glBlendFunc(Gl1Context.GL_SRC_ALPHA, Gl1Context.GL_ONE_MINUS_SRC_ALPHA);
       GlState.gl.glDisable(Gl1Context.GL_TEXTURE_2D);
+      Images.GL_SelectTexture(Gl1Context.GL_TEXTURE1);
+      GlState.gl.glDisable(Gl1Context.GL_TEXTURE_2D);
+      GlState.gl.glDisableClientState(Gl1Context.GL_TEXTURE_COORD_ARRAY);
+      Images.GL_SelectTexture(Gl1Context.GL_TEXTURE0);
+      GlState.gl.glDisableClientState(Gl1Context.GL_TEXTURE_COORD_ARRAY);
       GlState.gl.glPointSize(GlConfig.gl_particle_size.value);
 
-      GlState.gl.glDrawArrays(Gl1Context.GL_POINTS, 0,
-          GlState.r_newrefdef.num_particles);
+      GlState.gl.glDrawArrays(Gl1Context.GL_POINTS, 0, numParticles);
 
       GlState.gl.glDisableClientState(Gl1Context.GL_COLOR_ARRAY);
       // gl.glDisableClientState(GLAdapter.GL_VERTEX_ARRAY);

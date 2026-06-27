@@ -43,6 +43,7 @@ import elemental2.webgl.WebGLShader;
 import elemental2.webgl.WebGLTexture;
 import elemental2.webgl.WebGLUniformLocation;
 import jsinterop.base.Js;
+import jsinterop.base.JsPropertyMap;
 import org.gwtproject.nio.HasArrayBufferView;
 
 import static elemental2.webgl.WebGLRenderingContext.ARRAY_BUFFER;
@@ -76,6 +77,11 @@ public class WebGLGl1Contect extends Gl1Context {
   WebGLUniformLocation uTexEnv1;
   WebGLUniformLocation uEnableTexture0;
   WebGLUniformLocation uEnableTexture1;
+  WebGLUniformLocation uPointSize;
+  WebGLUniformLocation uPointSprite;
+  WebGLUniformLocation uPointDistAtt;
+  WebGLUniformLocation uPointSizeMin;
+  WebGLUniformLocation uPointSizeMax;
 
   JsArray<WebGLBuffer> staticBuffers = new JsArray<>();
 
@@ -117,7 +123,9 @@ public class WebGLGl1Contect extends Gl1Context {
 
   public WebGLGl1Contect(HTMLCanvasElement canvas) {
     this.canvas = canvas;
-    gl = Js.uncheckedCast(canvas.getContext("webgl"));
+    JsPropertyMap<Object> attrs = JsPropertyMap.of();
+    attrs.set("premultipliedAlpha", false);
+    gl = Js.uncheckedCast(canvas.getContext("webgl", attrs));
 
     if (gl == null) {
       throw new UnsupportedOperationException("WebGL N/A");
@@ -164,9 +172,16 @@ public class WebGLGl1Contect extends Gl1Context {
     String vertexShaderSource = "attribute vec4 a_position;\n"
         + "attribute vec4 a_color;\n" + "attribute vec2 a_texCoord0; \n"
         + "attribute vec2 a_texCoord1; \n" + "uniform mat4 u_mvpMatrix; \n"
+        + "uniform float u_pointSize; \n"
+        + "uniform vec3 u_pointDistAtt; \n"
+        + "uniform float u_pointSizeMin; \n"
+        + "uniform float u_pointSizeMax; \n"
         + "varying vec4 v_color; \n" + "varying vec2 v_texCoord0; \n"
         + "varying vec2 v_texCoord1; \n" + "void main() {\n"
         + "  gl_Position = u_mvpMatrix * a_position;\n"
+        + "  float dist = length(gl_Position.xyz);\n"
+        + "  float att = u_pointDistAtt.x + u_pointDistAtt.y * dist + u_pointDistAtt.z * dist * dist;\n"
+        + "  gl_PointSize = clamp(u_pointSize * inversesqrt(att), u_pointSizeMin, u_pointSizeMax);\n"
         + "  v_color = a_color;        \n" + "  v_texCoord0 = a_texCoord0;  \n"
         + "  v_texCoord1 = a_texCoord1;  \n" + "}\n";
 
@@ -175,9 +190,15 @@ public class WebGLGl1Contect extends Gl1Context {
         + "uniform sampler2D s_texture0;  \n"
         + "uniform sampler2D s_texture1;  \n" + "uniform int s_texEnv0;  \n"
         + "uniform int s_texEnv1;  \n" + "uniform int u_enable_texture_0; \n"
-        + "uniform int u_enable_texture_1; \n" + "varying vec4 v_color; \n"
+        + "uniform int u_enable_texture_1; \n"
+        + "uniform int u_pointSprite; \n"
+        + "varying vec4 v_color; \n"
         + "varying vec2 v_texCoord0;      \n" + "varying vec2 v_texCoord1;"
         + "vec4 finalColor;      \n" + "void main() {                 \n"
+        + "if (u_pointSprite == 1) {\n"
+        + "  float d = distance(gl_PointCoord, vec2(0.5, 0.5));\n"
+        + "  if (d > 0.5) discard;\n"
+        + "}\n"
         + "finalColor = v_color;" + "  if (u_enable_texture_0 == 1) { \n"
         + "    vec4 texel = texture2D(s_texture0, v_texCoord0); \n"
         + "    if(s_texEnv0 == 1) { "
@@ -193,7 +214,6 @@ public class WebGLGl1Contect extends Gl1Context {
         + "      finalColor = vec4(texel.r, texel.g, texel.b, finalColor.a);"
         + "    } else {" + "      finalColor = texel;" + "    }" + "  } \n"
         +
-        // simple alpha check
         "if (finalColor.a == 0.0) {\n" +
         "  discard;\n" +
         "}\n" +
@@ -244,6 +264,11 @@ public class WebGLGl1Contect extends Gl1Context {
 
     uEnableTexture0 = gl.getUniformLocation(programObject, "u_enable_texture_0");
     uEnableTexture1 = gl.getUniformLocation(programObject, "u_enable_texture_1");
+    uPointSize = gl.getUniformLocation(programObject, "u_pointSize");
+    uPointSprite = gl.getUniformLocation(programObject, "u_pointSprite");
+    uPointDistAtt = gl.getUniformLocation(programObject, "u_pointDistAtt");
+    uPointSizeMin = gl.getUniformLocation(programObject, "u_pointSizeMin");
+    uPointSizeMax = gl.getUniformLocation(programObject, "u_pointSizeMax");
 
     // // Check the link status
     boolean linked = Js.asBoolean(gl.getProgramParameter(programObject, (int)LINK_STATUS));
@@ -256,6 +281,11 @@ public class WebGLGl1Contect extends Gl1Context {
 
     gl.uniform1i(uSampler0, 0);
     gl.uniform1i(uSampler1, 1);
+    gl.uniform1f(uPointSize, 1.0);
+    gl.uniform1i(uPointSprite, 0);
+    gl.uniform3f(uPointDistAtt, 1.0, 0.0, 0.0);
+    gl.uniform1f(uPointSizeMin, 1.0);
+    gl.uniform1f(uPointSizeMax, 100.0);
     gl.activeTexture(GL_TEXTURE0);
   }
 
@@ -390,12 +420,23 @@ public class WebGLGl1Contect extends Gl1Context {
 
   @Override
   public void glPointParameterf(int id, float value) {
-    // TODO Auto-generated method stub
+    if (id == GL_POINT_SIZE_MIN) {
+      gl.uniform1f(uPointSizeMin, value);
+    } else if (id == GL_POINT_SIZE_MAX) {
+      gl.uniform1f(uPointSizeMax, value);
+    }
+  }
+
+  @Override
+  public void glPointParameterfv(int id, java.nio.FloatBuffer params) {
+    if (id == GL_POINT_DISTANCE_ATTENUATION) {
+      gl.uniform3f(uPointDistAtt, params.get(0), params.get(1), params.get(2));
+    }
   }
 
   @Override
   public void glPointSize(float value) {
-    // TODO Auto-generated method stub
+    gl.uniform1f(uPointSize, value);
   }
 
   @Override
@@ -568,9 +609,14 @@ public class WebGLGl1Contect extends Gl1Context {
 
   @Override
   public void glDrawArrays(int mode, int first, int count) {
+    if (mode == GL_POINTS) {
+      gl.uniform1i(uPointSprite, 1);
+    }
     prepareDraw();
-    // log("drawArrays mode:" + mode + " first:" + first + " count:" +count);
     gl.drawArrays(mode, first, count);
+    if (mode == GL_POINTS) {
+      gl.uniform1i(uPointSprite, 0);
+    }
     checkError("drawArrays");
   }
 
