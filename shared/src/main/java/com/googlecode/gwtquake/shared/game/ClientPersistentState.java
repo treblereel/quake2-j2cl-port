@@ -88,7 +88,7 @@ public class ClientPersistentState {
 	int score; // for calculating total unit score in coop games
 	int game_helpchanged;
 	int helpchanged;
-	boolean spectator; // client is a spectator
+    public boolean spectator; // client is a spectator
 
 	/** Reads a client_persistant structure from a file. */
 	public void read(QuakeFile f) throws IOException {

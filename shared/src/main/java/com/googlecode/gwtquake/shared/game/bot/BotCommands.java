@@ -24,9 +24,11 @@ import com.googlecode.gwtquake.shared.common.Com;
 import com.googlecode.gwtquake.shared.common.Constants;
 import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.game.Entity;
+import com.googlecode.gwtquake.shared.game.GameUtil;
 import com.googlecode.gwtquake.shared.game.PlayerClient;
 import com.googlecode.gwtquake.shared.game.GameBase;
 import com.googlecode.gwtquake.shared.server.ServerMain;
+import com.googlecode.gwtquake.shared.server.World;
 
 /**
  * Console command handlers for bot management.
@@ -133,51 +135,40 @@ public class BotCommands {
         info.strafeDir = 1f;
         Com.Printf(">>> spawnBot: BotInfo created\n");
 
-        // 4. CRITICAL: Mark entity as in-use and initialize client BEFORE ClientConnect
-        // Otherwise ClientBegin will call G_InitEdict and reset everything
-        ent.inuse = true;
+        // 4. CRBot does not connect bots as network clients. It initializes a
+        // client slot directly, then places the entity in the world.
+        GameUtil.G_InitEdict(ent, ent.index);
         ent.client = GameBase.game.clients[ent.index - 1];
-
-        // Initialize client persistent data to clear any old spectator/etc flags
-        // This is normally done in ClientConnect if inuse==false, but we set inuse=true
+        PlayerClient.InitClientResp(ent.client);
         PlayerClient.InitClientPersistant(ent.client);
-        Com.Printf(">>> spawnBot: marked inuse=true, client initialized\n");
 
-        // 5. Build userinfo string (add spectator=0 to force non-spectator mode)
-        String userinfo = "\\name\\" + name +
+        String userinfo = "\\msg\\1\\rate\\25000\\name\\" + name +
                          "\\skin\\" + skin +
-                         "\\model\\" + model +
-                         "\\spectator\\0";
-        Com.Printf(">>> spawnBot: calling ClientConnect with userinfo=" + userinfo + "\n");
-
-        // 6. Connect as client
-        try {
-            PlayerClient.ClientConnect(ent, userinfo);
-            Com.Printf(">>> spawnBot: ClientConnect done\n");
-            Com.Printf(">>> After ClientConnect: spectator=" + ent.client.pers.spectator + " solid=" + ent.solid + " svflags=" + ent.svflags + "\n");
-        } catch (Exception e) {
-            Com.Printf(">>> spawnBot ERROR in ClientConnect: " + e.getMessage() + "\n");
-            e.printStackTrace();
-            return;
-        }
-
-        // CRITICAL: Force spectator=false AFTER ClientConnect
-        // ClientConnect may set it based on userinfo parsing
+                         "\\fov\\90\\hand\\0\\ip\\loopback\\spectator\\0";
+        PlayerClient.ClientUserinfoChanged(ent, userinfo);
         ent.client.pers.spectator = false;
-        Com.Printf(">>> Forced spectator=false after ClientConnect\n");
+        Com.Printf(">>> spawnBot: client initialized as non-spectator userinfo=" + userinfo + "\n");
 
         try {
-            Com.Printf(">>> Before ClientBegin: spectator=" + ent.client.pers.spectator + "\n");
-            PlayerClient.ClientBegin(ent);
-            Com.Printf(">>> spawnBot: ClientBegin done\n");
-            Com.Printf(">>> After ClientBegin: solid=" + ent.solid + " svflags=" + ent.svflags + " classname=" + ent.classname + "\n");
+            Com.Printf(">>> Before PutClientInServer: spectator=" + ent.client.pers.spectator + "\n");
+            PlayerClient.PutClientInServer(ent);
+            ent.classname = "bot";
+            ent.movetype = Constants.MOVETYPE_STEP;
+            ent.die = BotMain.dieAdapter;
+            ent.svflags &= ~Constants.SVF_NOCLIENT;
+            World.SV_LinkEdict(ent);
+            Com.Printf(">>> spawnBot: PutClientInServer done\n");
+            Com.Printf(">>> After PutClientInServer: spectator=" + ent.client.pers.spectator +
+                       " solid=" + ent.solid + " svflags=" + ent.svflags +
+                       " movetype=" + ent.movetype +
+                       " classname=" + ent.classname + "\n");
         } catch (Exception e) {
-            Com.Printf(">>> spawnBot ERROR in ClientBegin: " + e.getMessage() + "\n");
+            Com.Printf(">>> spawnBot ERROR in PutClientInServer: " + e.getMessage() + "\n");
             e.printStackTrace();
             return;
         }
 
-        // 7. Configure bot-specific fields AFTER ClientBegin
+        // 5. Configure bot-specific fields AFTER the spawn code has finished
         // This ensures they aren't lost during initialization
         ent.botInfo = info;
         ent.botPers = pers;
