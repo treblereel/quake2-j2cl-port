@@ -28,8 +28,17 @@ import com.googlecode.gwtquake.shared.game.Commands;
 import com.googlecode.gwtquake.shared.game.GameBase;
 import com.googlecode.gwtquake.shared.game.GameUtil;
 import com.googlecode.gwtquake.shared.game.PlayerClient;
+import com.googlecode.gwtquake.shared.game.PlayerMove;
+import com.googlecode.gwtquake.shared.game.Trace;
+import com.googlecode.gwtquake.shared.game.adapters.EntityDieAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityThinkAdapter;
+import com.googlecode.gwtquake.shared.game.monsters.MonsterPlayer;
+import com.googlecode.gwtquake.shared.server.ServerGame;
+import com.googlecode.gwtquake.shared.server.ServerInit;
 import com.googlecode.gwtquake.shared.server.ServerMain;
+import com.googlecode.gwtquake.shared.server.World;
+import com.googlecode.gwtquake.shared.util.Lib;
+import com.googlecode.gwtquake.shared.util.Math3D;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,6 +51,11 @@ import java.util.List;
 public class BotMain {
 
     private static List<BotInfoPers> globalBots = new ArrayList<>();
+    private static final float MOVE_SPEED = 320f;
+    private static final float STRAFE_SPEED = 280f;
+    private static final float CLOSE_COMBAT_RANGE = 220f;
+    private static final float GOOD_COMBAT_RANGE = 650f;
+    private static final float MAX_DIRECT_ITEM_RANGE = 1000f;
 
     /**
      * Entity think adapter for bot AI.
@@ -51,6 +65,64 @@ public class BotMain {
         public boolean think(Entity self) {
             BotMain.think(self);
             return true;
+        }
+    };
+
+    /**
+     * Bots are not backed by a real network client, so the normal player death
+     * path must not open the scoreboard or send unicast messages to them.
+     */
+    private static int botDieAnim = 0;
+
+    public static EntityDieAdapter dieAdapter = new EntityDieAdapter() {
+        public String getID() { return "bot_die"; }
+        public void die(Entity self, Entity inflictor, Entity attacker, int damage, float[] point) {
+            Math3D.VectorClear(self.avelocity);
+
+            self.takedamage = Constants.DAMAGE_YES;
+            self.movetype = Constants.MOVETYPE_TOSS;
+            self.s.modelindex2 = 0;
+            self.s.angles[0] = 0;
+            self.s.angles[2] = 0;
+            self.s.sound = 0;
+            self.maxs[2] = -8;
+            self.svflags |= Constants.SVF_DEADMONSTER;
+
+            if (self.deadflag == 0 && self.client != null) {
+                self.client.respawn_time = GameBase.level.time + 1.0f;
+                self.client.ps.pmove.pm_type = Constants.PM_DEAD;
+
+                self.client.anim_priority = Constants.ANIM_DEATH;
+                if ((self.client.ps.pmove.pm_flags & PlayerMove.PMF_DUCKED) != 0) {
+                    self.s.frame = MonsterPlayer.FRAME_crdeath1 - 1;
+                    self.client.anim_end = MonsterPlayer.FRAME_crdeath5;
+                } else {
+                    botDieAnim = (botDieAnim + 1) % 3;
+                    switch (botDieAnim) {
+                    case 0:
+                        self.s.frame = MonsterPlayer.FRAME_death101 - 1;
+                        self.client.anim_end = MonsterPlayer.FRAME_death106;
+                        break;
+                    case 1:
+                        self.s.frame = MonsterPlayer.FRAME_death201 - 1;
+                        self.client.anim_end = MonsterPlayer.FRAME_death206;
+                        break;
+                    case 2:
+                        self.s.frame = MonsterPlayer.FRAME_death301 - 1;
+                        self.client.anim_end = MonsterPlayer.FRAME_death308;
+                        break;
+                    }
+                }
+
+                ServerGame.PF_StartSound(self, Constants.CHAN_VOICE,
+                    ServerInit.SV_SoundIndex("*death" + ((Lib.rand() % 4) + 1) + ".wav"),
+                    1.0f, (float) Constants.ATTN_NORM, 0f);
+            }
+
+            self.deadflag = Constants.DEAD_DEAD;
+            self.think = thinkAdapter;
+            self.nextthink = GameBase.level.time + Constants.FRAMETIME;
+            World.SV_LinkEdict(self);
         }
     };
 
@@ -83,15 +155,34 @@ public class BotMain {
                 }
             });
 
-            Com.Printf("Bot commands registered: addbot, addbots, removebot\n");
+            Commands.addCommand("loadnodes", new ExecutableCommand() {
+                public void execute() {
+                    PathNodeLoader.loadRoutes();
+                }
+            });
+
+            Commands.addCommand("savenodes", new ExecutableCommand() {
+                public void execute() {
+                    PathNodeLoader.saveRoutes();
+                }
+            });
+
+            Commands.addCommand("dumpnodes", new ExecutableCommand() {
+                public void execute() {
+                    PathNodeLoader.dumpNodes();
+                }
+            });
+
+            Com.Printf("Bot commands registered: addbot, addbots, removebot, loadnodes, savenodes\n");
         } catch (Exception e) {
             Com.Printf("ERROR registering bot commands: " + e.getMessage() + "\n");
             e.printStackTrace();
         }
 
-        // Clear path nodes
         PathNode.clearAll();
         globalBots.clear();
+
+        BotNodeInit.initNodeNet();
 
         Com.Printf("=== Bot subsystem initialized ===\n");
     }
@@ -105,32 +196,65 @@ public class BotMain {
             return;  // Not a bot
         }
 
+        if (bot.deadflag != 0) {
+            if (bot.client != null && GameBase.level.time > bot.client.respawn_time) {
+                respawnBot(bot);
+            } else {
+                bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
+            }
+            return;
+        }
+
         // Debug output once per second
         if (bot.botInfo.timeNextEnemy <= GameBase.level.time) {
             Com.Printf(">>> BotMain.think: Bot '" + bot.botPers.name + "' thinking at pos=[" +
                 bot.s.origin[0] + "," + bot.s.origin[1] + "," + bot.s.origin[2] + "]\n");
         }
 
-        // Find enemies
         findEnemy(bot);
-
-        // Combat
-        combat(bot);
-
-        // Find pickups
         findPickups(bot);
-
-        // Update movement (roaming for now)
+        BotNavigation.updateRoutes(bot);
         updateMovement(bot);
+        combat(bot);
+        applyCommandAngles(bot);
 
         // Set elapsed time for movement physics
         bot.client.userCommand.msec = 100;  // FRAMETIME in milliseconds
 
         // Execute the bot's command through the player movement system
+        if ((bot.client.userCommand.buttons & Constants.BUTTON_ATTACK) != 0) {
+            bot.client.buttons = 0;
+            bot.client.weapon_thunk = false;
+        }
         PlayerClient.ClientThink(bot, bot.client.userCommand);
 
         // Reschedule for next frame
         bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
+    }
+
+    private static void respawnBot(Entity bot) {
+        BotInfoPers pers = bot.botPers;
+        if (pers == null) {
+            return;
+        }
+
+        PlayerClient.respawn(bot);
+
+        bot.classname = "bot";
+        bot.movetype = Constants.MOVETYPE_STEP;
+        bot.die = dieAdapter;
+        bot.svflags &= ~Constants.SVF_NOCLIENT;
+        bot.svflags &= ~Constants.SVF_DEADMONSTER;
+        bot.deadflag = Constants.DEAD_NO;
+        bot.botPers = pers;
+        bot.botInfo = new BotInfo();
+        bot.botInfo.strafeDir = 1f;
+        Math3D.VectorCopy(bot.s.origin, bot.botInfo.oldOrigin);
+        bot.think = thinkAdapter;
+        bot.nextthink = GameBase.level.time + Constants.FRAMETIME;
+
+        World.SV_LinkEdict(bot);
+        Com.Printf(">>> BotMain.respawnBot: Bot '" + pers.name + "' respawned\n");
     }
 
     /**
@@ -176,8 +300,8 @@ public class BotMain {
         // Aim at enemy
         aimAtEnemy(bot);
 
-        // Shoot with skill-based accuracy
-        if (bi.timeNextShot < GameBase.level.time) {
+        // Shoot with skill-based accuracy, but only while the target is still visible.
+        if (GameUtil.visible(bot, bot.enemy) && bi.timeNextShot < GameBase.level.time) {
             float accuracy = 0.5f + (bot.botPers.skill * 0.15f);
 
             if (Math.random() < accuracy) {
@@ -215,7 +339,7 @@ public class BotMain {
 
             if (!target.inuse || target == bot) continue;
             if (target.health <= 0) continue;
-            if (target.botInfo != null) continue;  // Don't attack bots (yet)
+            if (isFriendlyBot(bot, target)) continue;
 
             // Check visibility
             if (!GameUtil.visible(bot, target)) continue;
@@ -253,25 +377,132 @@ public class BotMain {
             bi.timeNextRoamDirChange = GameBase.level.time + 2f + (float)Math.random() * 3f;
         }
 
-        // Move forward
-        bot.client.userCommand.forwardmove = 400;
+        bot.client.userCommand.forwardmove = (short) MOVE_SPEED;
     }
 
     /**
      * Move bot toward target position.
      */
     private static void moveToTarget(Entity bot, float[] target) {
-        float[] dir = new float[3];
-        dir[0] = target[0] - bot.s.origin[0];
-        dir[1] = target[1] - bot.s.origin[1];
-        dir[2] = 0;  // Ignore Z
+        setYawToward(bot, target);
 
-        // Calculate yaw
-        float yaw = (float)Math.atan2(dir[1], dir[0]) * 180f / (float)Math.PI;
-        bot.client.ps.viewangles[1] = yaw;
+        if (distance2d(bot.s.origin, target) > 48f) {
+            bot.client.userCommand.forwardmove = (short) MOVE_SPEED;
+        }
+    }
 
-        // Move forward
-        bot.client.userCommand.forwardmove = 400;
+    private static void setYawToward(Entity bot, float[] target) {
+        float dx = target[0] - bot.s.origin[0];
+        float dy = target[1] - bot.s.origin[1];
+        bot.client.ps.viewangles[1] = (float)Math.atan2(dy, dx) * 180f / (float)Math.PI;
+    }
+
+    private static float distance(Entity a, Entity b) {
+        float dx = a.s.origin[0] - b.s.origin[0];
+        float dy = a.s.origin[1] - b.s.origin[1];
+        float dz = a.s.origin[2] - b.s.origin[2];
+        return (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    private static float distance2d(float[] a, float[] b) {
+        float dx = a[0] - b[0];
+        float dy = a[1] - b[1];
+        return (float)Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private static float normalizeYaw(float yaw) {
+        while (yaw >= 360f) yaw -= 360f;
+        while (yaw < 0f) yaw += 360f;
+        return yaw;
+    }
+
+    private static boolean isFriendlyBot(Entity bot, Entity target) {
+        return bot.botPers != null
+            && target.botPers != null
+            && bot.botPers.teamNo != 0
+            && bot.botPers.teamNo == target.botPers.teamNo;
+    }
+
+    private static Trace traceMove(Entity bot, float yaw, float distance) {
+        float radians = yaw * (float)Math.PI / 180f;
+        float[] end = new float[3];
+        end[0] = bot.s.origin[0] + (float)Math.cos(radians) * distance;
+        end[1] = bot.s.origin[1] + (float)Math.sin(radians) * distance;
+        end[2] = bot.s.origin[2];
+        return World.SV_Trace(bot.s.origin, bot.mins, bot.maxs, end, bot, Constants.MASK_PLAYERSOLID);
+    }
+
+    private static boolean canMove(Entity bot, float yaw, float distance) {
+        Trace trace = traceMove(bot, yaw, distance);
+        return !trace.allsolid && !trace.startsolid && trace.fraction > 0.85f;
+    }
+
+    private static void avoidObstacles(Entity bot) {
+        if (bot.client.userCommand.forwardmove == 0 && bot.client.userCommand.sidemove == 0) {
+            return;
+        }
+
+        float baseYaw = bot.client.ps.viewangles[1];
+        float moveYaw = baseYaw + (float)Math.atan2(
+            bot.client.userCommand.sidemove,
+            bot.client.userCommand.forwardmove) * 180f / (float)Math.PI;
+
+        if (canMove(bot, moveYaw, 72f)) {
+            bot.botInfo.moveBlockCount = 0;
+            return;
+        }
+
+        bot.botInfo.moveBlockCount++;
+
+        float[] offsets = {45f, -45f, 90f, -90f, 135f, -135f, 180f};
+        for (float offset : offsets) {
+            float candidate = normalizeYaw(baseYaw + offset);
+            if (canMove(bot, candidate, 72f)) {
+                bot.client.ps.viewangles[1] = candidate;
+                bot.client.userCommand.forwardmove = (short) MOVE_SPEED;
+                bot.client.userCommand.sidemove = 0;
+                return;
+            }
+        }
+
+        bot.client.userCommand.forwardmove = (short)-160;
+        bot.client.userCommand.sidemove = (short)(bot.botInfo.strafeDir * STRAFE_SPEED);
+        if (bot.groundentity != null && bot.botInfo.timeNextJump < GameBase.level.time) {
+            bot.client.userCommand.upmove = 250;
+            bot.botInfo.timeNextJump = GameBase.level.time + 0.8f;
+        }
+    }
+
+    private static void recoverIfStuck(Entity bot) {
+        BotInfo bi = bot.botInfo;
+
+        if (bi.timeStuckCheck > GameBase.level.time) {
+            return;
+        }
+
+        float moved = distance2d(bot.s.origin, bi.oldOrigin);
+        if ((bot.client.userCommand.forwardmove != 0 || bot.client.userCommand.sidemove != 0) && moved < 12f) {
+            bi.stuckCount++;
+        } else {
+            bi.stuckCount = 0;
+        }
+
+        Math3D.VectorCopy(bot.s.origin, bi.oldOrigin);
+        bi.timeStuckCheck = GameBase.level.time + 0.6f;
+
+        if (bi.stuckCount >= 2) {
+            if (BotNavigation.hasPath(bot)) {
+                BotNavigation.handleStuck(bot);
+            }
+            bot.client.ps.viewangles[1] = normalizeYaw(bot.client.ps.viewangles[1] + 90f + (float)Math.random() * 120f);
+            bot.client.userCommand.forwardmove = (short)-160;
+            bot.client.userCommand.sidemove = (short)(bi.strafeDir * STRAFE_SPEED);
+            if (bot.groundentity != null && bi.timeNextJump < GameBase.level.time) {
+                bot.client.userCommand.upmove = 250;
+                bi.timeNextJump = GameBase.level.time + 0.8f;
+            }
+            bi.stuckCount = 0;
+        }
     }
 
     /**
@@ -361,6 +592,8 @@ public class BotMain {
             if (!item.inuse) continue;
             if (item.item == null) continue;
             if ((item.svflags & 1) != 0) continue;  // SVF_NOCLIENT
+            if (!GameUtil.visible(bot, item)) continue;
+            if (distance2d(bot.s.origin, item.s.origin) > MAX_DIRECT_ITEM_RANGE) continue;
 
             if (isUnreachable(bi, item)) continue;
 
@@ -390,23 +623,65 @@ public class BotMain {
 
         // Priority 1: Combat
         if (bot.enemy != null) {
-            // Move forward toward enemy (aim angles set by combat())
-            bot.client.userCommand.forwardmove = 400;
-            bot.client.userCommand.sidemove = (short)(bi.strafeDir * 400);  // Strafe
+            float enemyDistance = distance(bot, bot.enemy);
+            if (GameUtil.visible(bot, bot.enemy)) {
+                setYawToward(bot, bot.enemy.s.origin);
+                if (enemyDistance < CLOSE_COMBAT_RANGE) {
+                    bot.client.userCommand.forwardmove = -220;
+                    bot.client.userCommand.sidemove = (short)(bi.strafeDir * STRAFE_SPEED);
+                } else if (enemyDistance < GOOD_COMBAT_RANGE) {
+                    bot.client.userCommand.forwardmove = 80;
+                    bot.client.userCommand.sidemove = (short)(bi.strafeDir * STRAFE_SPEED);
+                } else {
+                    bot.client.userCommand.forwardmove = (short) MOVE_SPEED;
+                    bot.client.userCommand.sidemove = (short)(bi.strafeDir * 160);
+                }
+                BotNavigation.clearPath(bot);
+            } else {
+                if (bi.timeNextChaseUpdate < GameBase.level.time) {
+                    bi.timeNextChaseUpdate = GameBase.level.time + 0.5f;
+                    BotNavigation.findRoute(bot, bot.enemy.s.origin, true);
+                }
+                if (BotNavigation.hasPath(bot)) {
+                    BotNavigation.followPath(bot);
+                    moveToTarget(bot, bi.moveTarget);
+                } else {
+                    moveToTarget(bot, bot.enemy.s.origin);
+                }
+            }
         }
-        // Priority 2: Pickup
+        // Priority 2: Following a path (to pickup or exploration target)
+        else if (BotNavigation.hasPath(bot)) {
+            BotNavigation.followPath(bot);
+            moveToTarget(bot, bi.moveTarget);
+        }
+        // Priority 3: Direct pickup (visible, nearby)
         else if (bi.pickupTarget != null) {
-            moveToTarget(bot, bi.pickupTarget.s.origin);
+            if (distance2d(bot.s.origin, bi.pickupTarget.s.origin) < 200f) {
+                moveToTarget(bot, bi.pickupTarget.s.origin);
+            } else {
+                if (BotNavigation.findRoute(bot, bi.pickupTarget.s.origin, false)) {
+                    BotNavigation.followPath(bot);
+                    moveToTarget(bot, bi.moveTarget);
+                } else {
+                    moveToTarget(bot, bi.pickupTarget.s.origin);
+                }
+            }
         }
         // Default: Roam
         else {
             roam(bot);
         }
 
-        // Apply view angles to command
-        bot.client.userCommand.angles[0] = (short)(bot.client.ps.viewangles[0] * 65536 / 360);
-        bot.client.userCommand.angles[1] = (short)(bot.client.ps.viewangles[1] * 65536 / 360);
-        bot.client.userCommand.angles[2] = (short)(bot.client.ps.viewangles[2] * 65536 / 360);
+        avoidObstacles(bot);
+        recoverIfStuck(bot);
+    }
+
+    private static void applyCommandAngles(Entity bot) {
+        for (int i = 0; i < 3; i++) {
+            int desired = Math3D.ANGLE2SHORT(bot.client.ps.viewangles[i]);
+            bot.client.userCommand.angles[i] = (short)(desired - bot.client.ps.pmove.delta_angles[i]);
+        }
     }
 
     /**
@@ -415,6 +690,12 @@ public class BotMain {
     static void registerBot(BotInfoPers pers) {
         if (pers != null) {
             globalBots.add(pers);
+        }
+    }
+
+    static void unregisterBot(BotInfoPers pers) {
+        if (pers != null) {
+            globalBots.remove(pers);
         }
     }
 

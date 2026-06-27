@@ -1806,7 +1806,7 @@ public class GameMisc {
 
     //=================================================================================
 
-    static EntityTouchAdapter teleporter_touch = new EntityTouchAdapter() {
+    public static EntityTouchAdapter teleporter_touch = new EntityTouchAdapter() {
         public String getID() { return "teleporter_touch";}
         public void touch(Entity self, Entity other, Plane plane,
                 Surface surf) {

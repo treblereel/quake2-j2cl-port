@@ -835,7 +835,7 @@ public class GameFunc {
         }
     };
 
-    static EntityTouchAdapter Touch_Plat_Center = new EntityTouchAdapter() {
+    public static EntityTouchAdapter Touch_Plat_Center = new EntityTouchAdapter() {
         public String getID() { return "touch_plat_center";}
         public void touch(Entity ent, Entity other, Plane plane,
                 Surface surf) {
@@ -1197,7 +1197,7 @@ public class GameFunc {
         }
     };
 
-    static EntityUseAdapter door_use = new EntityUseAdapter() {
+    public static EntityUseAdapter door_use = new EntityUseAdapter() {
         public String getID() { return "door_use";}
         public void use(Entity self, Entity other, Entity activator) {
             Entity ent;

@@ -73,7 +73,7 @@ public class GameItem {
 
     String classname; // spawning name
 
-    EntInteractAdapter pickup;
+    public EntInteractAdapter pickup;
 
     ItemUseAdapter use;
 

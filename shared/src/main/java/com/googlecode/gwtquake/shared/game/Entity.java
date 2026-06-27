@@ -34,6 +34,7 @@ import com.googlecode.gwtquake.shared.game.adapters.EntityTouchAdapter;
 import com.googlecode.gwtquake.shared.game.adapters.EntityUseAdapter;
 import com.googlecode.gwtquake.shared.game.bot.BotInfo;
 import com.googlecode.gwtquake.shared.game.bot.BotInfoPers;
+import com.googlecode.gwtquake.shared.game.bot.PathNode;
 import com.googlecode.gwtquake.shared.util.*;
 
 
@@ -285,6 +286,7 @@ public class Entity {
     // Bot AI data (null = not a bot, non-null = bot)
     public BotInfo botInfo = null;
     public BotInfoPers botPers = null;
+    public PathNode prevNode = null;
 
     public Entity owner;
 

@@ -430,9 +430,12 @@ public class GameBase {
             }
 
             if (i > 0 && i <= maxclients.value) {
-                // Bot entity - use standard entity processing with bot think callback
+                // Bots drive player movement from their think callback via
+                // ClientThink, so do not run entity physics on top of that.
                 if (ent.botInfo != null) {
-                    Globals.game.RunEntity.accept(ent);
+                    SV.SV_RunThink(ent);
+                    if (ent.inuse)
+                        PlayerClient.ClientBeginServerFrame(ent);
                     continue;
                 }
 
