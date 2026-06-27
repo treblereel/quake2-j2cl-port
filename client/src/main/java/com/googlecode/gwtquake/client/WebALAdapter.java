@@ -367,6 +367,7 @@ public class WebALAdapter extends ALAdapter {
     public void alSourcePlay(int source) {
         SourceData sd = sourceData.get(source);
         if (sd != null) {
+            sd.started = true;
             if (sd.buffer != null && sd.buffer.element != null) {
                 sd.buffer.element = sd.buffer.element.playme();
             }
@@ -454,6 +455,7 @@ public class WebALAdapter extends ALAdapter {
             if (audio.currentTime > 0) {
                 if (audio.seekable != null && audio.duration > 0) {
                     audio.currentTime = 0;
+                    audio.play();
                     return this;
                 } else {
                     HTML5AudioElement x = new HTML5AudioElement(audio.src);
@@ -539,7 +541,7 @@ public class WebALAdapter extends ALAdapter {
                 if (alDistanceModel != ALAdapter.AL_INVERSE_DISTANCE_CLAMPED) {
                     buffer.element.setVolume(alListenerGain * alGain);
                 } else {
-                    float gain = alRefDist / (alRefDist * alRolloffFactor * (Math.min(Math.max(distance(), alRefDist), alMaxDist)
+                    float gain = alRefDist / (alRefDist + alRolloffFactor * (Math.min(Math.max(distance(), alRefDist), alMaxDist)
                             - alRefDist));
                     buffer.element.setVolume(alListenerGain * Math.max(alMinGain, Math.min(alGain * gain, alMaxGain)));
                 }
